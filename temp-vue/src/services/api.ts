@@ -1,3 +1,7 @@
+// Esto envia las peticiones la Backend con Credentials: 'include'
+// para que la cookie httpOnly de la sesion en la BD V viaje automaticamente
+// sin usa localStorage //
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 export interface ApiResponse<T> {
