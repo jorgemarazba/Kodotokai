@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   Scale,
   MessageSquarePlus,
   Briefcase,
-  ShieldAlert,
   MessageSquare,
-  MapPin,
   UserPlus,
-  LogOut,
+  Settings,
+  ChevronDown,
+  Volume2,
 } from 'lucide-vue-next'
 import { useSessionStore } from '@/stores/session'
 import { useLawyersStore } from '@/stores/lawyers'
@@ -19,6 +20,16 @@ const route = useRoute()
 const sessionStore = useSessionStore()
 const lawyersStore = useLawyersStore()
 const chatStore = useChatStore()
+
+const showSettings = ref(false)
+
+function handleVoiceChange(event: Event) {
+  chatStore.applyVoiceProfile?.((event.target as HTMLSelectElement).value)
+}
+
+function handlePitchChange() {
+  chatStore.testSelectedVoice?.()
+}
 
 function handleNewChat() {
   chatStore.startNewChat()
@@ -44,7 +55,7 @@ function openConversation(id: string) {
       </div>
     </div>
 
-    <!-- Navegación Principal (Orden exacto: Nuevo chat -> Lawyers -> Multiservice) -->
+    <!-- Navegación Principal (Orden exacto: Nuevo chat -> Lawyers) -->
     <div class="p-3 space-y-1.5">
       <!-- 1. Nuevo chat -->
       <button
@@ -78,25 +89,6 @@ function openConversation(id: string) {
           {{ lawyersStore.lawyers.length }}
         </span>
       </button>
-
-      <!-- 3. Multiservice (Debajo de Lawyers: CAI e Inspector de Policía por ciudad) -->
-      <button
-        @click="router.push('/multiservice')"
-        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
-        :class="
-          route.path === '/multiservice'
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-            : 'text-slate-300 hover:bg-slate-800'
-        "
-      >
-        <span class="flex items-center gap-3">
-          <ShieldAlert class="w-4 h-4" />
-          <span>Multiservice</span>
-        </span>
-        <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-          CAI · Insp.
-        </span>
-      </button>
     </div>
 
     <!-- Historial Privado del Usuario Activo -->
@@ -126,26 +118,8 @@ function openConversation(id: string) {
       </button>
     </div>
 
-    <!-- Selector de Ciudad + Usuario Activo + Botón Registro de Servicio -->
+    <!-- Botón Registro de Servicio -->
     <div class="p-3 border-t border-slate-800 space-y-2.5 bg-slate-950/50">
-      <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
-        <MapPin class="w-4 h-4 text-blue-400 shrink-0" />
-        <select
-          :value="sessionStore.selectedCityId"
-          @change="sessionStore.changeCity(($event.target as HTMLSelectElement).value)"
-          class="bg-transparent text-xs text-slate-200 w-full focus:outline-none cursor-pointer"
-        >
-          <option
-            v-for="city in sessionStore.cities"
-            :key="city.id"
-            :value="city.id"
-            class="bg-slate-900 text-slate-100"
-          >
-            📍 {{ city.name }}
-          </option>
-        </select>
-      </div>
-
       <button
         @click="sessionStore.openEntryTab('service-register')"
         class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition cursor-pointer"
@@ -154,23 +128,52 @@ function openConversation(id: string) {
         <span>Registro de servicio (Abogados)</span>
       </button>
 
-      <div class="flex items-center justify-between pt-1">
-        <div class="truncate pr-2">
-          <p class="text-xs font-semibold text-slate-200 truncate">
-            {{ sessionStore.user?.name || 'Invitado sin sesión' }}
-          </p>
-          <p class="text-[11px] text-slate-400 truncate">
-            {{ sessionStore.user?.email || 'Inicia sesión en el panel central' }}
-          </p>
+      <div v-if="showSettings" class="space-y-2 text-[11px] text-slate-300">
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+          <Volume2 class="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          <span class="text-slate-400">Voz:</span>
+          <select
+            :value="chatStore.selectedVoiceId"
+            @change="handleVoiceChange"
+            class="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer w-full min-w-0 truncate"
+          >
+            <option
+              v-for="v in chatStore.availableVoices"
+              :key="v.id"
+              :value="v.id"
+              class="bg-slate-900 text-slate-200"
+            >
+              {{ v.label }}
+            </option>
+          </select>
         </div>
-        <button
-          @click="sessionStore.logoutSession()"
-          title="Cambiar usuario / Abrir pestañas de inicio"
-          class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-        >
-          <LogOut class="w-4 h-4" />
-        </button>
+
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+          <span class="text-slate-400">Timbre:</span>
+          <select
+            v-model.number="chatStore.voicePitch"
+            @change="handlePitchChange"
+            class="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer w-full min-w-0"
+          >
+            <option :value="0.76" class="bg-slate-900">Masculino Muy Grave</option>
+            <option :value="0.86" class="bg-slate-900">Masculino Grave</option>
+            <option :value="0.92" class="bg-slate-900">Masculino Natural</option>
+            <option :value="1.0" class="bg-slate-900">Estándar</option>
+          </select>
+        </div>
       </div>
+
+      <!-- Configuración: Voz y Timbre del avatar -->
+      <button
+        @click="showSettings = !showSettings"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 border border-slate-800 transition cursor-pointer"
+      >
+        <span class="flex items-center gap-2">
+          <Settings class="w-3.5 h-3.5" />
+          <span>Configuración</span>
+        </span>
+        <ChevronDown class="w-3.5 h-3.5 transition" :class="showSettings ? 'rotate-180' : ''" />
+      </button>
     </div>
   </aside>
 </template>

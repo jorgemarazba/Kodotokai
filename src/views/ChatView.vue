@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { Mic, MicOff, Send, VolumeX, Volume2, BookOpen } from 'lucide-vue-next'
+import { Mic, MicOff, Send, VolumeX, BookOpen } from 'lucide-vue-next'
 import AvatarCanvas from '@/components/avatar/AvatarCanvas.vue'
 import { useChatStore } from '@/stores/chat'
 import { useSessionStore } from '@/stores/session'
@@ -17,17 +17,6 @@ let manualStop = false
 onMounted(() => {
   chatStore.loadSpanishVoices?.()
 })
-
-function handleVoiceChange(event: Event) {
-  const target = event.target as HTMLSelectElement
-  if (chatStore.applyVoiceProfile) {
-    chatStore.applyVoiceProfile(target.value)
-  }
-}
-
-function handlePitchChange() {
-  chatStore.testSelectedVoice?.()
-}
 
 function clearSilenceTimer() {
   if (silenceTimer) {
@@ -170,7 +159,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex flex-col h-full bg-slate-950">
-    <!-- Zona Superior: Avatar 3D + Subtítulos en Vivo + Selector de Voz -->
+    <!-- Zona Superior: Avatar 3D + Subtítulos en Vivo -->
     <div class="border-b border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-slate-950 p-4 flex flex-col items-center">
       <div class="w-full max-w-xl">
         <AvatarCanvas />
@@ -183,41 +172,6 @@ onBeforeUnmount(() => {
         </p>
       </div>
 
-      <!-- Selector de Perfil de Voz y Timbre del Avatar -->
-      <div class="mt-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-300">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1">
-          <Volume2 class="w-3.5 h-3.5 text-blue-400" />
-          <span class="text-slate-400">Voz:</span>
-          <select
-            :value="chatStore.selectedVoiceId"
-            @change="handleVoiceChange"
-            class="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer max-w-[230px] truncate"
-          >
-            <option
-              v-for="v in chatStore.availableVoices"
-              :key="v.id"
-              :value="v.id"
-              class="bg-slate-900 text-slate-200"
-            >
-              {{ v.label }}
-            </option>
-          </select>
-        </div>
-
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1">
-          <span class="text-slate-400">Timbre:</span>
-          <select
-            v-model.number="chatStore.voicePitch"
-            @change="handlePitchChange"
-            class="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer"
-          >
-            <option :value="0.76" class="bg-slate-900">Masculino Muy Grave</option>
-            <option :value="0.86" class="bg-slate-900">Masculino Grave</option>
-            <option :value="0.92" class="bg-slate-900">Masculino Natural</option>
-            <option :value="1.0" class="bg-slate-900">Estándar</option>
-          </select>
-        </div>
-      </div>
     </div>
 
     <!-- Zona Central: Historial de Mensajes de la Conversación Activa -->

@@ -1,29 +1,21 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Briefcase, CheckCircle2, ShieldCheck, Sparkles, X } from 'lucide-vue-next'
-import { useSessionStore } from '@/stores/session'
+import { CheckCircle2, Sparkles, X } from 'lucide-vue-next'
+import { useSessionStore, CITIES } from '@/stores/session'
 import { useLawyersStore } from '@/stores/lawyers'
-import { useChatStore } from '@/stores/chat'
 
 const router = useRouter()
 const sessionStore = useSessionStore()
 const lawyersStore = useLawyersStore()
-const chatStore = useChatStore()
 
-// Estado formulario Pestaña 1: Usuario
-const userName = ref('')
-const userEmail = ref('')
-const userCityId = ref(sessionStore.selectedCityId)
-const userError = ref('')
-
-// Estado formulario Pestaña 2: Registro de Servicio (Abogado)
+// Estado formulario: Registro de Servicio (Abogado)
 const lawyerForm = ref({
   fullName: '',
   email: '',
   whatsapp: '+57',
   phone: '',
-  cityId: sessionStore.selectedCityId,
+  cityId: CITIES[0]!.id,
   specialtyCode: 'LABORAL',
   professionalCard: '',
   university: '',
@@ -41,25 +33,6 @@ const lawyerForm = ref({
 })
 const lawyerError = ref('')
 
-async function handleUserSubmit() {
-  userError.value = ''
-  if (userName.value.trim().length < 2) {
-    userError.value = 'Ingresa tu nombre completo.'
-    return
-  }
-  if (!userEmail.value.includes('@')) {
-    userError.value = 'Ingresa un correo electrónico válido.'
-    return
-  }
-
-  await sessionStore.startUserSession({
-    name: userName.value,
-    email: userEmail.value,
-    cityId: userCityId.value,
-  })
-  chatStore.startNewChat()
-}
-
 async function handleLawyerRegister() {
   lawyerError.value = ''
   const f = lawyerForm.value
@@ -72,11 +45,6 @@ async function handleLawyerRegister() {
     return
   }
 
-  await sessionStore.startUserSession({
-    name: f.fullName,
-    email: f.email,
-    cityId: f.cityId,
-  })
 
   await lawyersStore.registerLawyerService({
     fullName: f.fullName,
@@ -99,6 +67,7 @@ async function handleLawyerRegister() {
     schedule: f.schedule,
   })
 
+  sessionStore.showEntryModal = false
   router.push('/lawyers')
 }
 </script>
@@ -112,7 +81,6 @@ async function handleLawyerRegister() {
       <!-- Encabezado y Pestañas Centrales -->
       <div class="p-6 border-b border-slate-800 bg-slate-900/60 relative">
         <button
-          v-if="sessionStore.user"
           @click="sessionStore.showEntryModal = false"
           class="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
         >
@@ -125,99 +93,13 @@ async function handleLawyerRegister() {
         </div>
         <h2 class="text-xl font-bold text-white">Bienvenido a Remi-915</h2>
         <p class="text-xs text-slate-400 mt-1">
-          Elige cómo deseas ingresar: como ciudadano para consultar al avatar o como abogado para publicar tus servicios.
+          Si eres abogado(a), publica tus servicios para que aparezcas en la sección Lawyers.
         </p>
 
-        <!-- Selector de las 2 Pestañas Centrales -->
-        <div class="grid grid-cols-2 gap-2 mt-5 p-1 bg-slate-950 rounded-xl border border-slate-800">
-          <button
-            @click="sessionStore.entryActiveTab = 'user'"
-            class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-semibold transition cursor-pointer"
-            :class="
-              sessionStore.entryActiveTab === 'user'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
-            "
-          >
-            <User class="w-4 h-4" />
-            <span>1. Usuario</span>
-          </button>
-
-          <button
-            @click="sessionStore.entryActiveTab = 'service-register'"
-            class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-semibold transition cursor-pointer"
-            :class="
-              sessionStore.entryActiveTab === 'service-register'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-white'
-            "
-          >
-            <Briefcase class="w-4 h-4" />
-            <span>2. Registro de servicio</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- CONTENIDO PESTAÑA 1: USUARIO -->
-      <div v-if="sessionStore.entryActiveTab === 'user'" class="p-6 space-y-4">
-        <div class="p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/50 text-xs text-blue-200 flex items-start gap-3">
-          <ShieldCheck class="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-          <div>
-            <strong>Instancia privada en Base de Datos Vectorial:</strong>
-            Tu sesión y tu historial quedan aislados bajo tu nombre y correo en ChromaDB. Ningún otro usuario puede ver tus conversaciones.
-          </div>
-        </div>
-
-        <div v-if="userError" class="p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-xs text-red-300">
-          {{ userError }}
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Tu nombre completo</label>
-            <input
-              v-model="userName"
-              type="text"
-              placeholder="Ej. María Fernanda Gómez"
-              class="w-full rounded-xl bg-slate-950 border border-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Tu correo electrónico</label>
-            <input
-              v-model="userEmail"
-              type="email"
-              placeholder="maria@correo.com"
-              class="w-full rounded-xl bg-slate-950 border border-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">
-            Tu ciudad actual (para CAI, Inspector de Policía y Abogados cercanos)
-          </label>
-          <select
-            v-model="userCityId"
-            class="w-full rounded-xl bg-slate-950 border border-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-          >
-            <option v-for="c in sessionStore.cities" :key="c.id" :value="c.id">
-              {{ c.name }} ({{ c.department }})
-            </option>
-          </select>
-        </div>
-
-        <button
-          @click="handleUserSubmit"
-          class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/25 transition cursor-pointer"
-        >
-          Entrar y hablar con el Avatar Legal
-        </button>
       </div>
 
       <!-- CONTENIDO PESTAÑA 2: REGISTRO DE SERVICIO (ABOGADOS) -->
-      <div v-else class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+      <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
         <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-1">
           <p class="font-bold text-amber-300 flex items-center gap-2">
             <CheckCircle2 class="w-4 h-4" />
@@ -257,7 +139,7 @@ async function handleLawyerRegister() {
               v-model="lawyerForm.cityId"
               class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
             >
-              <option v-for="c in sessionStore.cities" :key="c.id" :value="c.id">{{ c.name }}</option>
+              <option v-for="c in CITIES" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </div>
           <div>

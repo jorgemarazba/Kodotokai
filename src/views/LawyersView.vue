@@ -20,13 +20,9 @@ const sessionStore = useSessionStore()
 
 const searchQuery = ref('')
 const selectedSpecialty = ref('ALL')
-const filterByCurrentCity = ref(false)
 
 const filteredLawyers = computed(() => {
   return lawyersStore.lawyers.filter((item) => {
-    if (filterByCurrentCity.value && item.cityId !== sessionStore.selectedCityId) {
-      return false
-    }
     if (selectedSpecialty.value !== 'ALL' && item.specialtyCode !== selectedSpecialty.value) {
       return false
     }
@@ -78,7 +74,7 @@ function buildWhatsAppUrl(whatsapp: string, lawyerName: string, serviceTitle: st
       </div>
 
       <!-- Barra de Filtros -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
         <div class="relative">
           <Search class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
@@ -99,10 +95,6 @@ function buildWhatsAppUrl(whatsapp: string, lawyerName: string, serviceTitle: st
           </option>
         </select>
 
-        <label class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 cursor-pointer">
-          <input v-model="filterByCurrentCity" type="checkbox" class="rounded" />
-          <span>Solo en {{ sessionStore.currentCity.name }}</span>
-        </label>
       </div>
 
       <!-- Tarjetas de Abogados y Publicaciones tipo LinkedIn -->

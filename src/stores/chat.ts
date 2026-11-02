@@ -162,7 +162,7 @@ export const useChatStore = defineStore('chat', () => {
         {
           id: crypto.randomUUID(),
           sender: 'ASSISTANT',
-          content: `Hola ${sessionStore.user?.name || ''}. Soy Remi-915, tu abogado orientador virtual en ${sessionStore.currentCity.name}. ¿En qué tema legal (laboral, arriendo, consumidor, tránsito, familia o convivencia) te puedo orientar hoy?`,
+          content: `Hola ${sessionStore.user?.name || ''}. Soy Remi-915, tu abogado orientador virtual. ¿En qué tema legal (laboral, arriendo, consumidor, tránsito, familia o convivencia) te puedo orientar hoy?`,
           emotion: 'happy',
           createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
         },
@@ -346,7 +346,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function testSelectedVoice() {
     speakWithLipSync(
-      `Hola, soy Remi 915 en ${sessionStore.currentCity.name}. Así suena mi nueva voz configurada para orientarte.`,
+      `Hola, soy Remi 915. Así suena mi nueva voz configurada para orientarte.`,
       'happy'
     )
   }
@@ -408,8 +408,8 @@ export const useChatStore = defineStore('chat', () => {
 
     if (isQuickGreeting(content)) {
       const reply = content.toLowerCase().includes('gracias')
-        ? `¡Con mucho gusto! Recuerda que también puedes revisar el directorio de abogados en Lawyers o los CAI e Inspectores en Multiservice para ${sessionStore.currentCity.name}.`
-        : `¡Hola ${sessionStore.user?.name || ''}! Soy Remi-915, todo muy bien. Estoy conectado a la base legal en ${sessionStore.currentCity.name}. Cuéntame tu consulta sobre trabajo, arriendo, consumidor, tránsito, familia o convivencia y te respondo de inmediato.`
+        ? `¡Con mucho gusto! Recuerda que también puedes revisar el directorio de abogados en Lawyers.`
+        : `¡Hola ${sessionStore.user?.name || ''}! Soy Remi-915, todo muy bien. Estoy conectado a la base legal. Cuéntame tu consulta sobre trabajo, arriendo, consumidor, tránsito, familia o convivencia y te respondo de inmediato.`
 
       const botMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -496,7 +496,7 @@ export const useChatStore = defineStore('chat', () => {
       // Respaldo local
     }
 
-    const fallback = buildLocalLegalResponse(content, sessionStore.currentCity.name)
+    const fallback = buildLocalLegalResponse(content)
     reactiveBotMsg.content = fallback.text
     reactiveBotMsg.emotion = fallback.emotion
     reactiveBotMsg.sources = fallback.sources
@@ -505,8 +505,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function buildLocalLegalResponse(
-    query: string,
-    cityName: string
+    query: string
   ): {
     text: string
     emotion: 'neutral' | 'happy' | 'empatia' | 'serio'
@@ -516,7 +515,7 @@ export const useChatStore = defineStore('chat', () => {
     if (q.includes('despid') || q.includes('liquidaci') || q.includes('trabajo') || q.includes('sueldo')) {
       return {
         emotion: 'empatia',
-        text: `Según los artículos 64 y 65 del Código Sustantivo del Trabajo, ante un despido sin justa causa tienes derecho al pago inmediato de tu liquidación más la indemnización legal. Puedes contactar un abogado laboralista en ${cityName} desde la sección Lawyers.`,
+        text: `Según los artículos 64 y 65 del Código Sustantivo del Trabajo, ante un despido sin justa causa tienes derecho al pago inmediato de tu liquidación más la indemnización legal. Puedes contactar un abogado laboralista desde la sección Lawyers.`,
         sources: [
           {
             lawName: 'CÓDIGO SUSTANTIVO DEL TRABAJO',
@@ -529,7 +528,7 @@ export const useChatStore = defineStore('chat', () => {
 
     return {
       emotion: 'empatia',
-      text: `Para orientarte en ${cityName} sobre "${query}", te aconsejo radicar primero un Derecho de Petición (Ley 1755 de 2015, plazo de 15 días hábiles) o consultar directamente a un especialista en la sección Lawyers o Multiservice del menú izquierdo.`,
+      text: `Para orientarte sobre "${query}", te aconsejo radicar primero un Derecho de Petición (Ley 1755 de 2015, plazo de 15 días hábiles) o consultar directamente a un especialista en la sección Lawyers del menú izquierdo.`,
       sources: [
         {
           lawName: 'LEY 1755 DE 2015',
