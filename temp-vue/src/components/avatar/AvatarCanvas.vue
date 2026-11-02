@@ -198,8 +198,8 @@ onBeforeUnmount(() => {
             : chatStore.avatarState === 'thinking'
               ? 'Analizando legislación colombiana...'
               : chatStore.avatarState === 'speaking'
-                ? 'LegalBot hablando (Lip-Sync activo)...'
-                : 'LegalBot listo para escucharte'
+                ? 'Remi-915 hablando (Lip-Sync activo)...'
+                : 'Remi-915 listo para escucharte'
         }}
       </span>
     </div>

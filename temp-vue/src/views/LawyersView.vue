@@ -46,7 +46,7 @@ const filteredLawyers = computed(() => {
 function buildWhatsAppUrl(whatsapp: string, lawyerName: string, serviceTitle: string) {
   const digits = whatsapp.replace(/\D/g, '')
   const msg = encodeURIComponent(
-    `Hola ${lawyerName}, vi tu servicio "${serviceTitle}" publicado en LegalBot Colombia y deseo consultar contigo.`
+    `Hola ${lawyerName}, vi tu servicio "${serviceTitle}" publicado en Remi-915 Colombia y deseo consultar contigo.`
   )
   return `https://wa.me/${digits}?text=${msg}`
 }
@@ -193,7 +193,7 @@ function buildWhatsAppUrl(whatsapp: string, lawyerName: string, serviceTitle: st
               </a>
 
               <a
-                :href="`mailto:${lawyer.email}?subject=Consulta LegalBot: ${lawyer.serviceTitle}`"
+                :href="`mailto:${lawyer.email}?subject=Consulta Remi-915: ${lawyer.serviceTitle}`"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
               >
                 <Mail class="w-3.5 h-3.5" />

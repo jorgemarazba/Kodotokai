@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { apiRequest } from '@/services/api'
 import { useSessionStore } from './session'
 
 export interface LegalCitation {
@@ -27,6 +26,57 @@ export interface ConversationItem {
   messages: ChatMessage[]
 }
 
+export interface VoiceOption {
+  id: string
+  label: string
+  neuralVoice: string
+  neuralRate: string
+  neuralPitch: string
+  pitch: number
+  rate: number
+  voiceName?: string
+}
+
+// Voces Neuronales Masculinas reales (edge-tts) + respaldo Web Speech
+const DEFAULT_VOICE_PROFILES: VoiceOption[] = [
+  {
+    id: 'neural-gonzalo-co',
+    label: '🇨🇴 Gonzalo Neural · Colombiano Joven (IA)',
+    neuralVoice: 'es-CO-GonzaloNeural',
+    neuralRate: '+4%',
+    neuralPitch: '-1Hz',
+    pitch: 0.92,
+    rate: 1.04,
+  },
+  {
+    id: 'neural-jorge-mx',
+    label: '🇲🇽 Jorge Neural · Ejecutivo Cálido (IA)',
+    neuralVoice: 'es-MX-JorgeNeural',
+    neuralRate: '+2%',
+    neuralPitch: '-2Hz',
+    pitch: 0.88,
+    rate: 1.02,
+  },
+  {
+    id: 'neural-alvaro-es',
+    label: '🇪🇸 Álvaro Neural · Abogado Senior Grave (IA)',
+    neuralVoice: 'es-ES-AlvaroNeural',
+    neuralRate: '+0%',
+    neuralPitch: '-3Hz',
+    pitch: 0.8,
+    rate: 0.98,
+  },
+  {
+    id: 'neural-tomas-ar',
+    label: '🇦🇷 Tomás Neural · Asesor Dinámico (IA)',
+    neuralVoice: 'es-AR-TomasNeural',
+    neuralRate: '+5%',
+    neuralPitch: '+0Hz',
+    pitch: 0.94,
+    rate: 1.06,
+  },
+]
+
 export const useChatStore = defineStore('chat', () => {
   const sessionStore = useSessionStore()
 
@@ -36,12 +86,62 @@ export const useChatStore = defineStore('chat', () => {
   const avatarEmotion = ref<'neutral' | 'happy' | 'empatia' | 'serio'>('neutral')
   const currentViseme = ref<'aa' | 'ee' | 'ih' | 'oh' | 'ou' | 'sil'>('sil')
   const liveSubtitle = ref<string>(
-    'Hola, soy LegalBot. Presiona el micrófono o escribe tu consulta legal para orientarte.'
+    'Hola, soy Remi-915. Presiona el micrófono o escribe tu consulta legal para orientarte.'
   )
 
-  let visemeInterval: ReturnType<typeof setInterval> | null = null
+  const availableVoices = ref<VoiceOption[]>([...DEFAULT_VOICE_PROFILES])
+  const selectedVoiceId = ref<string>('neural-gonzalo-co')
+  const voicePitch = ref<number>(0.92)
+  const voiceRate = ref<number>(1.04)
 
-  // Filtra estrictamente las conversaciones para que cada usuario solo vea su propia instancia
+  let visemeInterval: ReturnType<typeof setInterval> | null = null
+  let currentAudio: HTMLAudioElement | null = null
+  const neuralTtsAvailable = ref<boolean | null>(null)
+
+  async function checkNeuralTtsStatus(): Promise<boolean> {
+    if (neuralTtsAvailable.value === true) return true
+    try {
+      const res = await fetch('/health')
+      if (res.ok) {
+        const data = await res.json()
+        neuralTtsAvailable.value = data?.neural_tts === true
+        return neuralTtsAvailable.value
+      }
+    } catch {
+      // ignorar
+    }
+    neuralTtsAvailable.value = false
+    return false
+  }
+
+  function loadSpanishVoices() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    const rawVoices = window.speechSynthesis.getVoices()
+    const spanish = rawVoices.filter((v) => v.lang.toLowerCase().startsWith('es'))
+
+    const systemOptions: VoiceOption[] = spanish.map((v) => ({
+      id: `sys-${v.name}`,
+      label: `🔊 Navegador: ${v.name.replace(/Microsoft |Online \(Natural\) - /g, '')} (${v.lang})`,
+      neuralVoice: '',
+      neuralRate: '+0%',
+      neuralPitch: '+0Hz',
+      pitch: voicePitch.value,
+      rate: voiceRate.value,
+      voiceName: v.name,
+    }))
+
+    availableVoices.value = [...DEFAULT_VOICE_PROFILES, ...systemOptions]
+  }
+
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    loadSpanishVoices()
+    window.speechSynthesis.onvoiceschanged = () => {
+      loadSpanishVoices()
+    }
+    setTimeout(loadSpanishVoices, 300)
+    setTimeout(loadSpanishVoices, 1000)
+  }
+
   const userConversations = computed(() => {
     const uid = sessionStore.user?.id || 'anonymous'
     return conversations.value.filter((c) => c.userId === uid)
@@ -62,7 +162,7 @@ export const useChatStore = defineStore('chat', () => {
         {
           id: crypto.randomUUID(),
           sender: 'ASSISTANT',
-          content: `Hola ${sessionStore.user?.name || ''}. Soy tu abogado orientador virtual en ${sessionStore.currentCity.name}. ¿En qué tema legal (laboral, arriendo, consumidor o convivencia) te puedo orientar hoy?`,
+          content: `Hola ${sessionStore.user?.name || ''}. Soy Remi-915, tu abogado orientador virtual en ${sessionStore.currentCity.name}. ¿En qué tema legal (laboral, arriendo, consumidor, tránsito, familia o convivencia) te puedo orientar hoy?`,
           emotion: 'happy',
           createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
         },
@@ -81,24 +181,124 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function speakWithLipSync(text: string, emotion: 'neutral' | 'happy' | 'empatia' | 'serio' = 'empatia') {
-    avatarEmotion.value = emotion
-    avatarState.value = 'speaking'
-    liveSubtitle.value = text
-
+  function startLipSyncAnimation() {
     const visemePool: Array<'aa' | 'ee' | 'ih' | 'oh' | 'ou'> = ['aa', 'ee', 'ih', 'oh', 'ou']
     if (visemeInterval) clearInterval(visemeInterval)
+    avatarState.value = 'speaking'
 
     visemeInterval = setInterval(() => {
       const randomViseme = visemePool[Math.floor(Math.random() * visemePool.length)]!
       currentViseme.value = Math.random() > 0.2 ? randomViseme : 'sil'
-    }, 110)
+    }, 105)
+  }
 
+  function pickBestSystemVoice(preferredName?: string): SpeechSynthesisVoice | undefined {
+    const rawVoices = window.speechSynthesis.getVoices()
+    const spanish = rawVoices.filter((v) => v.lang.toLowerCase().startsWith('es'))
+    if (spanish.length === 0) return undefined
+
+    if (preferredName) {
+      const exact = spanish.find((v) => v.name === preferredName)
+      if (exact) return exact
+    }
+
+    const preferredKeywords = [
+      'gonzalo',
+      'alvaro',
+      'jorge',
+      'raul',
+      'pablo',
+      'tomas',
+      'sebastian',
+      'natural',
+      'google español de estados unidos',
+      'google español',
+    ]
+    for (const kw of preferredKeywords) {
+      const found = spanish.find((v) => v.name.toLowerCase().includes(kw))
+      if (found) return found
+    }
+    return spanish[0]
+  }
+
+  function pitchNumberToHz(pitchVal: number, baseHz: string): string {
+    if (pitchVal <= 0.78) return '-6Hz'
+    if (pitchVal <= 0.88) return '-3Hz'
+    if (pitchVal >= 0.98) return '+1Hz'
+    return baseHz
+  }
+
+  async function speakWithLipSync(
+    text: string,
+    emotion: 'neutral' | 'happy' | 'empatia' | 'serio' = 'empatia'
+  ) {
+    const cleanText = text.replace(/\[Source:[^\]]+\]/g, '').replace(/\*\*/g, '').trim()
+    if (!cleanText) return
+
+    stopSpeaking()
+    avatarEmotion.value = emotion
+    liveSubtitle.value = cleanText
+
+    const selectedOption =
+      availableVoices.value.find((o) => o.id === selectedVoiceId.value) || DEFAULT_VOICE_PROFILES[0]!
+
+    // 1. Intentar primero la Voz Neuronal Masculina (/v1/tts con edge-tts) solo si /health confirma neural_tts: true
+    if (selectedOption.neuralVoice && (await checkNeuralTtsStatus())) {
+      try {
+        const res = await fetch('/v1/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: cleanText,
+            voice: selectedOption.neuralVoice,
+            rate: selectedOption.neuralRate,
+            pitch: pitchNumberToHz(voicePitch.value, selectedOption.neuralPitch),
+          }),
+        })
+
+        if (res.ok) {
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          currentAudio = audio
+
+          audio.onplay = () => {
+            startLipSyncAnimation()
+          }
+          audio.onended = () => {
+            URL.revokeObjectURL(url)
+            stopSpeaking()
+          }
+          audio.onerror = () => {
+            URL.revokeObjectURL(url)
+            stopSpeaking()
+          }
+
+          await audio.play()
+          return
+        }
+      } catch {
+        // Si uvicorn no se ha reiniciado con edge-tts, usar respaldo inmediato de voz del navegador
+      }
+    }
+
+    // 2. Respaldo con Web Speech API del navegador
+    startLipSyncAnimation()
     if ('speechSynthesis' in window) {
+      loadSpanishVoices()
       window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text.replace(/\*\*/g, ''))
-      utterance.lang = 'es-CO'
-      utterance.rate = 1.02
+      const utterance = new SpeechSynthesisUtterance(cleanText)
+      const chosenVoice = pickBestSystemVoice(selectedOption.voiceName)
+
+      if (chosenVoice) {
+        utterance.voice = chosenVoice
+        utterance.lang = chosenVoice.lang
+      } else {
+        utterance.lang = 'es-CO'
+      }
+
+      utterance.pitch = voicePitch.value
+      utterance.rate = voiceRate.value
 
       utterance.onend = () => {
         stopSpeaking()
@@ -108,18 +308,85 @@ export const useChatStore = defineStore('chat', () => {
       }
       window.speechSynthesis.speak(utterance)
     } else {
-      const durationMs = Math.min(12000, Math.max(2500, text.split(' ').length * 320))
+      const durationMs = Math.min(12000, Math.max(2500, cleanText.split(' ').length * 320))
       setTimeout(() => stopSpeaking(), durationMs)
     }
   }
 
   function stopSpeaking() {
+    if (currentAudio) {
+      try {
+        currentAudio.pause()
+        currentAudio.currentTime = 0
+      } catch {
+        // ignorar
+      }
+      currentAudio = null
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
     if (visemeInterval) {
       clearInterval(visemeInterval)
       visemeInterval = null
     }
     currentViseme.value = 'sil'
     avatarState.value = 'idle'
+  }
+
+  function applyVoiceProfile(profileId: string) {
+    selectedVoiceId.value = profileId
+    const found = availableVoices.value.find((o) => o.id === profileId)
+    if (found) {
+      voicePitch.value = found.pitch
+      voiceRate.value = found.rate
+    }
+    testSelectedVoice()
+  }
+
+  function testSelectedVoice() {
+    speakWithLipSync(
+      `Hola, soy Remi 915 en ${sessionStore.currentCity.name}. Así suena mi nueva voz configurada para orientarte.`,
+      'happy'
+    )
+  }
+
+  function normalizeRagSources(rawSources: unknown): LegalCitation[] {
+    if (!Array.isArray(rawSources)) return []
+    return rawSources.map((item, idx) => {
+      if (typeof item === 'string') {
+        const cleanName = item.replace('.md', '').replace(/_/g, ' ')
+        return {
+          lawName: cleanName.toUpperCase(),
+          articleNumber: 'Base RAG verificada',
+          excerpt: item,
+        }
+      }
+      return {
+        lawName: `Fuente RAG #${idx + 1}`,
+        articleNumber: 'Documento local',
+        excerpt: '',
+      }
+    })
+  }
+
+  function isQuickGreeting(text: string): boolean {
+    const clean = text.toLowerCase().replace(/[¿?¡!.,]/g, '').trim()
+    const greetings = [
+      'hola',
+      'hola como estas',
+      'hola cómo estás',
+      'buenos dias',
+      'buenos días',
+      'buenas tardes',
+      'buenas noches',
+      'buenas',
+      'que tal',
+      'qué tal',
+      'gracias',
+      'muchas gracias',
+    ]
+    return greetings.includes(clean)
   }
 
   async function sendUserMessage(content: string) {
@@ -139,43 +406,102 @@ export const useChatStore = defineStore('chat', () => {
       createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
     })
 
-    avatarState.value = 'thinking'
-    liveSubtitle.value = 'Consultando legislación colombiana verificada (RAG)...'
-    const startMs = performance.now()
+    if (isQuickGreeting(content)) {
+      const reply = content.toLowerCase().includes('gracias')
+        ? `¡Con mucho gusto! Recuerda que también puedes revisar el directorio de abogados en Lawyers o los CAI e Inspectores en Multiservice para ${sessionStore.currentCity.name}.`
+        : `¡Hola ${sessionStore.user?.name || ''}! Soy Remi-915, todo muy bien. Estoy conectado a la base legal en ${sessionStore.currentCity.name}. Cuéntame tu consulta sobre trabajo, arriendo, consumidor, tránsito, familia o convivencia y te respondo de inmediato.`
 
-    try {
-      const res = await apiRequest<{
-        assistantMessage: ChatMessage
-      }>(`/conversations/${conv.id}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ content }),
-      })
-
-      if (res.success && res.data.assistantMessage) {
-        const msg = res.data.assistantMessage
-        conv.messages.push(msg)
-        speakWithLipSync(msg.content, msg.emotion || 'empatia')
-        return
+      const botMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        sender: 'ASSISTANT',
+        content: reply,
+        emotion: 'happy',
+        responseTimeMs: 45,
+        createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
       }
-    } catch {
-      // Respuesta local inteligente basada en leyes colombianas mientras el backend se enciende
+      conv.messages.push(botMsg)
+      speakWithLipSync(botMsg.content, 'happy')
+      return
     }
 
-    const fallback = buildLocalLegalResponse(content, sessionStore.currentCity.name)
-    const elapsedMs = Math.round(performance.now() - startMs) + 180
+    avatarState.value = 'thinking'
+    liveSubtitle.value = 'Remi-915 consultando RAG + Ollama en tiempo real...'
+    const startMs = performance.now()
 
     const botMsg: ChatMessage = {
       id: crypto.randomUUID(),
       sender: 'ASSISTANT',
-      content: fallback.text,
-      emotion: fallback.emotion,
-      sources: fallback.sources,
-      responseTimeMs: elapsedMs,
+      content: '',
+      emotion: 'empatia',
+      sources: [],
       createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
     }
-
     conv.messages.push(botMsg)
-    speakWithLipSync(botMsg.content, botMsg.emotion)
+    const reactiveBotMsg = conv.messages[conv.messages.length - 1]!
+
+    try {
+      const response = await fetch('/v1/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: content.trim(),
+        }),
+      })
+
+      if (response.ok && response.body) {
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n\n')
+          buffer = lines.pop() || ''
+
+          for (const block of lines) {
+            const line = block.trim()
+            if (!line.startsWith('data:')) continue
+            const payload = line.replace(/^data:\s*/, '').trim()
+            if (payload === '[DONE]') break
+
+            try {
+              const parsed = JSON.parse(payload)
+              if (parsed.sources) {
+                reactiveBotMsg.sources = normalizeRagSources(parsed.sources)
+              }
+              if (parsed.delta) {
+                if (!reactiveBotMsg.responseTimeMs) {
+                  reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+                }
+                reactiveBotMsg.content += parsed.delta
+                liveSubtitle.value = reactiveBotMsg.content
+              }
+            } catch {
+              // Ignorar fragmentos incompletos
+            }
+          }
+        }
+
+        if (reactiveBotMsg.content.trim()) {
+          speakWithLipSync(reactiveBotMsg.content, 'empatia')
+          return
+        }
+      }
+    } catch {
+      // Respaldo local
+    }
+
+    const fallback = buildLocalLegalResponse(content, sessionStore.currentCity.name)
+    reactiveBotMsg.content = fallback.text
+    reactiveBotMsg.emotion = fallback.emotion
+    reactiveBotMsg.sources = fallback.sources
+    reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+    speakWithLipSync(reactiveBotMsg.content, fallback.emotion)
   }
 
   function buildLocalLegalResponse(
@@ -184,59 +510,31 @@ export const useChatStore = defineStore('chat', () => {
   ): {
     text: string
     emotion: 'neutral' | 'happy' | 'empatia' | 'serio'
-    sources: LegalCitation[]
+  sources: LegalCitation[]
   } {
     const q = query.toLowerCase()
     if (q.includes('despid') || q.includes('liquidaci') || q.includes('trabajo') || q.includes('sueldo')) {
       return {
         emotion: 'empatia',
-        text: `Según los artículos 64 y 65 del Código Sustantivo del Trabajo, ante un despido sin justa causa tienes derecho al pago inmediato de tu liquidación (cesantías, intereses, prima y vacaciones) más la indemnización legal. Puedes contactar un abogado laboralista en ${cityName} desde la sección Lawyers en el menú izquierdo. Nota: Orientación informativa.`,
+        text: `Según los artículos 64 y 65 del Código Sustantivo del Trabajo, ante un despido sin justa causa tienes derecho al pago inmediato de tu liquidación más la indemnización legal. Puedes contactar un abogado laboralista en ${cityName} desde la sección Lawyers.`,
         sources: [
           {
-            lawName: 'Código Sustantivo del Trabajo (Colombia)',
+            lawName: 'CÓDIGO SUSTANTIVO DEL TRABAJO',
             articleNumber: 'Arts. 64 y 65',
-            excerpt: 'Indemnización por despido sin justa causa y sanción moratoria por falta de pago.',
-          },
-        ],
-      }
-    }
-
-    if (q.includes('ruido') || q.includes('vecino') || q.includes('polic') || q.includes('cai') || q.includes('riña')) {
-      return {
-        emotion: 'serio',
-        text: `De acuerdo con los artículos 33 y 206 de la Ley 1801 de 2016 (Código Nacional de Seguridad y Convivencia Ciudadana), puedes acudir al cuadrante del CAI más cercano o presentar querella ante el Inspector de Policía de tu localidad. Abre la sección Multiservice debajo de Lawyers para ver el CAI y el Inspector de Policía en ${cityName}.`,
-        sources: [
-          {
-            lawName: 'Ley 1801 de 2016 (Código de Policía)',
-            articleNumber: 'Arts. 33, 77 y 206',
-            excerpt: 'Tranquilidad vecinal, querellas policivas y atribuciones de los Inspectores de Policía.',
-          },
-        ],
-      }
-    }
-
-    if (q.includes('arriend') || q.includes('canon') || q.includes('inmueble') || q.includes('inquilino')) {
-      return {
-        emotion: 'empatia',
-        text: `Conforme a la Ley 820 de 2003 (Arrendamiento de Vivienda Urbana), el incremento anual no puede superar el 100 % del IPC del año anterior (Art. 20) y la terminación unilateral requiere preaviso escrito de 3 meses (Arts. 22 y 24). Revisa la sección Lawyers si necesitas representación inmobiliaria en ${cityName}.`,
-        sources: [
-          {
-            lawName: 'Ley 820 de 2003',
-            articleNumber: 'Arts. 18, 20, 22 y 24',
-            excerpt: 'Régimen de arrendamiento de vivienda urbana en Colombia.',
+            excerpt: 'Indemnización por despido sin justa causa.',
           },
         ],
       }
     }
 
     return {
-      emotion: 'happy',
-      text: `Según la Ley 1480 de 2011 (Estatuto del Consumidor) y el marco legal colombiano en ${cityName}, tienes derecho a presentar reclamación directa con plazo de respuesta de 15 días hábiles. Si deseas atención personalizada, explora la sección Lawyers o Multiservice en la barra lateral.`,
+      emotion: 'empatia',
+      text: `Para orientarte en ${cityName} sobre "${query}", te aconsejo radicar primero un Derecho de Petición (Ley 1755 de 2015, plazo de 15 días hábiles) o consultar directamente a un especialista en la sección Lawyers o Multiservice del menú izquierdo.`,
       sources: [
         {
-          lawName: 'Ley 1480 de 2011 (Estatuto del Consumidor)',
-          articleNumber: 'Arts. 7, 11, 47 y 58',
-          excerpt: 'Garantía legal, derecho de retracto y reclamación ante la SIC.',
+          lawName: 'LEY 1755 DE 2015',
+          articleNumber: 'Art. 23 C.P.',
+          excerpt: 'Derecho fundamental de petición.',
         },
       ],
     }
@@ -251,10 +549,17 @@ export const useChatStore = defineStore('chat', () => {
     avatarEmotion,
     currentViseme,
     liveSubtitle,
+    availableVoices,
+    selectedVoiceId,
+    voicePitch,
+    voiceRate,
+    loadSpanishVoices,
+    applyVoiceProfile,
     startNewChat,
     selectConversation,
     sendUserMessage,
     speakWithLipSync,
     stopSpeaking,
+    testSelectedVoice,
   }
 })

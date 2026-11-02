@@ -39,7 +39,7 @@ function openConversation(id: string) {
         <Scale class="w-5 h-5 text-white" />
       </div>
       <div>
-        <h1 class="font-bold text-base text-white tracking-tight">LegalBot Colombia</h1>
+        <h1 class="font-bold text-base text-white tracking-tight">Remi-915 Colombia</h1>
         <p class="text-xs text-slate-400">IA Local · Sesión Vectorial</p>
       </div>
     </div>

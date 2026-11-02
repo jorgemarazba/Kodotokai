@@ -123,7 +123,7 @@ async function handleLawyerRegister() {
           <Sparkles class="w-4 h-4" />
           <span>Plataforma Jurídica Inteligente · Colombia</span>
         </div>
-        <h2 class="text-xl font-bold text-white">Bienvenido a LegalBot</h2>
+        <h2 class="text-xl font-bold text-white">Bienvenido a Remi-915</h2>
         <p class="text-xs text-slate-400 mt-1">
           Elige cómo deseas ingresar: como ciudadano para consultar al avatar o como abogado para publicar tus servicios.
         </p>
@@ -368,4 +368,4 @@ async function handleLawyerRegister() {
       </div>
     </div>
   </div>
-</template>
+</template> 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Mic, MicOff, Send, VolumeX, BookOpen } from 'lucide-vue-next'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { Mic, MicOff, Send, VolumeX, Volume2, BookOpen } from 'lucide-vue-next'
 import AvatarCanvas from '@/components/avatar/AvatarCanvas.vue'
 import { useChatStore } from '@/stores/chat'
 import { useSessionStore } from '@/stores/session'
@@ -11,30 +11,69 @@ const sessionStore = useSessionStore()
 const inputMessage = ref('')
 const isRecording = ref(false)
 let recognition: any = null
+let silenceTimer: ReturnType<typeof setTimeout> | null = null
+let manualStop = false
 
-function toggleVoiceRecording() {
+onMounted(() => {
+  chatStore.loadSpanishVoices?.()
+})
+
+function handleVoiceChange(event: Event) {
+  const target = event.target as HTMLSelectElement
+  if (chatStore.applyVoiceProfile) {
+    chatStore.applyVoiceProfile(target.value)
+  }
+}
+
+function handlePitchChange() {
+  chatStore.testSelectedVoice?.()
+}
+
+function clearSilenceTimer() {
+  if (silenceTimer) {
+    clearTimeout(silenceTimer)
+    silenceTimer = null
+  }
+}
+
+async function toggleVoiceRecording() {
   if (isRecording.value) {
-    stopVoiceRecording()
+    stopVoiceRecording(true)
     return
+  }
+
+  if (chatStore.avatarState === 'speaking') {
+    chatStore.stopSpeaking()
   }
 
   const SpeechRecognitionAPI =
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
   if (!SpeechRecognitionAPI) {
-    alert('Tu navegador no soporta reconocimiento de voz directo. Escribe tu consulta en el cuadro inferior.')
+    chatStore.liveSubtitle =
+      '⚠️ Tu navegador no soporta reconocimiento de voz (usa Google Chrome o Microsoft Edge).'
     return
   }
 
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    stream.getTracks().forEach((track) => track.stop())
+  } catch {
+    chatStore.liveSubtitle =
+      '⚠️ Permiso de micrófono denegado. Haz clic en el icono junto a la URL y permite el micrófono.'
+    return
+  }
+
+  manualStop = false
   recognition = new SpeechRecognitionAPI()
   recognition.lang = 'es-CO'
-  recognition.continuous = false
+  recognition.continuous = true
   recognition.interimResults = true
 
   recognition.onstart = () => {
     isRecording.value = true
     chatStore.avatarState = 'listening'
-    chatStore.liveSubtitle = 'Te escucho... habla ahora.'
+    chatStore.liveSubtitle = '🎙️ Micrófono activo: habla ahora (pulsa de nuevo para enviar)...'
   }
 
   recognition.onresult = (event: any) => {
@@ -44,9 +83,37 @@ function toggleVoiceRecording() {
     }
     inputMessage.value = transcript
     chatStore.liveSubtitle = `🎤 "${transcript}"`
+
+    clearSilenceTimer()
+    if (transcript.trim().length > 2) {
+      silenceTimer = setTimeout(() => {
+        if (isRecording.value && inputMessage.value.trim()) {
+          stopVoiceRecording(true)
+        }
+      }, 2400)
+    }
+  }
+
+  recognition.onerror = (event: any) => {
+    if (event.error === 'no-speech' && !manualStop) {
+      return
+    }
+    clearSilenceTimer()
+    isRecording.value = false
+    chatStore.avatarState = 'idle'
   }
 
   recognition.onend = () => {
+    if (isRecording.value && !manualStop && !inputMessage.value.trim()) {
+      try {
+        recognition.start()
+        return
+      } catch {
+        // continuar
+      }
+    }
+
+    clearSilenceTimer()
     isRecording.value = false
     if (inputMessage.value.trim()) {
       handleSend()
@@ -55,19 +122,30 @@ function toggleVoiceRecording() {
     }
   }
 
-  recognition.onerror = () => {
+  try {
+    recognition.start()
+  } catch {
     isRecording.value = false
     chatStore.avatarState = 'idle'
   }
-
-  recognition.start()
 }
 
-function stopVoiceRecording() {
-  if (recognition) {
-    recognition.stop()
-  }
+function stopVoiceRecording(shouldSend = true) {
+  manualStop = true
+  clearSilenceTimer()
   isRecording.value = false
+  if (recognition) {
+    try {
+      recognition.stop()
+    } catch {
+      // ignorar
+    }
+  }
+  if (shouldSend && inputMessage.value.trim()) {
+    handleSend()
+  } else if (!inputMessage.value.trim()) {
+    chatStore.avatarState = 'idle'
+  }
 }
 
 async function handleSend() {
@@ -76,11 +154,23 @@ async function handleSend() {
   inputMessage.value = ''
   await chatStore.sendUserMessage(text)
 }
+
+onBeforeUnmount(() => {
+  manualStop = true
+  clearSilenceTimer()
+  if (recognition) {
+    try {
+      recognition.stop()
+    } catch {
+      // ignorar
+    }
+  }
+})
 </script>
 
 <template>
   <div class="flex flex-col h-full bg-slate-950">
-    <!-- Zona Superior: Avatar 3D + Subtítulos en Vivo -->
+    <!-- Zona Superior: Avatar 3D + Subtítulos en Vivo + Selector de Voz -->
     <div class="border-b border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-slate-950 p-4 flex flex-col items-center">
       <div class="w-full max-w-xl">
         <AvatarCanvas />
@@ -91,6 +181,42 @@ async function handleSend() {
         <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
           {{ chatStore.liveSubtitle }}
         </p>
+      </div>
+
+      <!-- Selector de Perfil de Voz y Timbre del Avatar -->
+      <div class="mt-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-300">
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1">
+          <Volume2 class="w-3.5 h-3.5 text-blue-400" />
+          <span class="text-slate-400">Voz:</span>
+          <select
+            :value="chatStore.selectedVoiceId"
+            @change="handleVoiceChange"
+            class="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer max-w-[230px] truncate"
+          >
+            <option
+              v-for="v in chatStore.availableVoices"
+              :key="v.id"
+              :value="v.id"
+              class="bg-slate-900 text-slate-200"
+            >
+              {{ v.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1">
+          <span class="text-slate-400">Timbre:</span>
+          <select
+            v-model.number="chatStore.voicePitch"
+            @change="handlePitchChange"
+            class="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer"
+          >
+            <option :value="0.76" class="bg-slate-900">Masculino Muy Grave</option>
+            <option :value="0.86" class="bg-slate-900">Masculino Grave</option>
+            <option :value="0.92" class="bg-slate-900">Masculino Natural</option>
+            <option :value="1.0" class="bg-slate-900">Estándar</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -125,7 +251,7 @@ async function handleSend() {
           </div>
         </div>
         <span class="text-[10px] text-slate-500 mt-1 px-1">
-          {{ msg.sender === 'USER' ? sessionStore.user?.name || 'Tú' : 'LegalBot' }} · {{ msg.createdAt }}
+          {{ msg.sender === 'USER' ? sessionStore.user?.name || 'Tú' : 'Remi-915' }} · {{ msg.createdAt }}
           <template v-if="msg.responseTimeMs"> · ⚡ {{ msg.responseTimeMs }} ms</template>
         </span>
       </div>
@@ -145,7 +271,7 @@ async function handleSend() {
         >
           <MicOff v-if="isRecording" class="w-4 h-4" />
           <Mic v-else class="w-4 h-4" />
-          <span>{{ isRecording ? 'Detener voz' : 'Hablar con Avatar' }}</span>
+          <span>{{ isRecording ? 'Detener y enviar' : 'Hablar con Avatar' }}</span>
         </button>
 
         <button
