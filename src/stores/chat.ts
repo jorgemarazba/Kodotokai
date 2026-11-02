@@ -1,11 +1,56 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useSessionStore } from './session'
+import { useStatsStore } from './stats'
 
 export interface LegalCitation {
   lawName: string
   articleNumber: string
   excerpt: string
+}
+
+export type AvatarGesture = 'idle' | 'greeting' | 'explaining' | 'affirming' | 'denying'
+
+export function detectGestureFromText(text: string): AvatarGesture {
+  const lower = text.toLowerCase().trim()
+  if (
+    lower.includes('hola') ||
+    lower.includes('bienvenid') ||
+    lower.includes('buenos días') ||
+    lower.includes('buenas tardes') ||
+    lower.includes('buenas noches') ||
+    lower.includes('un placer') ||
+    lower.includes('saludos') ||
+    lower.includes('mucho gusto')
+  ) {
+    return 'greeting'
+  }
+  if (
+    lower.includes('no tengo') ||
+    lower.includes('no encuentro') ||
+    lower.includes('lo siento') ||
+    lower.includes('disculpa') ||
+    lower.includes('lamentablemente') ||
+    lower.includes('no dispongo') ||
+    lower.includes('no se encuentra') ||
+    lower.includes('no fue posible') ||
+    lower.includes('no es posible') ||
+    lower.includes('desafortunadamente')
+  ) {
+    return 'denying'
+  }
+  if (
+    lower.includes('claro') ||
+    lower.includes('por supuesto') ||
+    lower.includes('con gusto') ||
+    lower.includes('exactamente') ||
+    lower.includes('correcto') ||
+    lower.includes('efectivamente') ||
+    lower.includes('totalmente')
+  ) {
+    return 'affirming'
+  }
+  return 'explaining'
 }
 
 export interface ChatMessage {
@@ -82,11 +127,14 @@ const WELCOME_TEXT =
 
 export const useChatStore = defineStore('chat', () => {
   const sessionStore = useSessionStore()
+  const statsStore = useStatsStore()
 
   const conversations = ref<ConversationItem[]>([])
   const activeConversationId = ref<string>('')
   const avatarState = ref<'idle' | 'listening' | 'thinking' | 'speaking'>('idle')
   const avatarEmotion = ref<'neutral' | 'happy' | 'empatia' | 'serio'>('neutral')
+  const avatarGesture = ref<AvatarGesture>('idle')
+  const gestureStartedAt = ref<number>(0)
   const currentViseme = ref<'aa' | 'ee' | 'ih' | 'oh' | 'ou' | 'sil'>('sil')
   const liveSubtitle = ref<string>(WELCOME_TEXT)
 
@@ -250,6 +298,8 @@ export const useChatStore = defineStore('chat', () => {
     speechStarted = false
     avatarEmotion.value = emotion
     liveSubtitle.value = cleanText
+    avatarGesture.value = detectGestureFromText(cleanText)
+    gestureStartedAt.value = performance.now()
 
     const selectedOption =
       availableVoices.value.find((o) => o.id === selectedVoiceId.value) || DEFAULT_VOICE_PROFILES[0]!
@@ -348,6 +398,7 @@ export const useChatStore = defineStore('chat', () => {
     }
     currentViseme.value = 'sil'
     avatarState.value = 'idle'
+    avatarGesture.value = 'idle'
   }
 
   function applyVoiceProfile(profileId: string) {
@@ -405,7 +456,7 @@ export const useChatStore = defineStore('chat', () => {
     return greetings.includes(clean)
   }
 
-  async function sendUserMessage(content: string) {
+  async function sendUserMessage(content: string, mode: 'text' | 'voice' = 'text') {
     if (!content.trim()) return
     if (!activeConversation.value) {
       startNewChat()
@@ -504,6 +555,13 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         if (reactiveBotMsg.content.trim()) {
+          statsStore.logQuery({
+            question: content,
+            responseMs: reactiveBotMsg.responseTimeMs ?? Math.round(performance.now() - startMs),
+            origin: 'backend',
+            mode,
+            laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+          })
           speakWithLipSync(reactiveBotMsg.content, 'empatia')
           return
         }
@@ -517,6 +575,13 @@ export const useChatStore = defineStore('chat', () => {
     reactiveBotMsg.emotion = fallback.emotion
     reactiveBotMsg.sources = fallback.sources
     reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+    statsStore.logQuery({
+      question: content,
+      responseMs: reactiveBotMsg.responseTimeMs,
+      origin: 'local',
+      mode,
+      laws: fallback.sources.map((s) => s.lawName),
+    })
     speakWithLipSync(reactiveBotMsg.content, fallback.emotion)
   }
 
@@ -563,6 +628,8 @@ export const useChatStore = defineStore('chat', () => {
     activeConversation,
     avatarState,
     avatarEmotion,
+    avatarGesture,
+    gestureStartedAt,
     currentViseme,
     liveSubtitle,
     availableVoices,

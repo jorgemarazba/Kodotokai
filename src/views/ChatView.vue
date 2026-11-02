@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { Mic, MicOff, Send, VolumeX, BookOpen } from 'lucide-vue-next'
+import { Mic, MicOff, Send, VolumeX, BookOpen, ThumbsUp, ThumbsDown } from 'lucide-vue-next'
 import AvatarCanvas from '@/components/avatar/AvatarCanvas.vue'
 import { useChatStore } from '@/stores/chat'
 import { useSessionStore } from '@/stores/session'
+import { useStatsStore } from '@/stores/stats'
 
 const chatStore = useChatStore()
 const sessionStore = useSessionStore()
+const statsStore = useStatsStore()
 
 const inputMessage = ref('')
 const isRecording = ref(false)
@@ -106,7 +108,7 @@ async function toggleVoiceRecording() {
     clearSilenceTimer()
     isRecording.value = false
     if (inputMessage.value.trim()) {
-      handleSend()
+      handleSend('voice')
     } else {
       chatStore.avatarState = 'idle'
     }
@@ -132,17 +134,17 @@ function stopVoiceRecording(shouldSend = true) {
     }
   }
   if (shouldSend && inputMessage.value.trim()) {
-    handleSend()
+    handleSend('voice')
   } else if (!inputMessage.value.trim()) {
     chatStore.avatarState = 'idle'
   }
 }
 
-async function handleSend() {
+async function handleSend(mode: 'text' | 'voice' = 'text') {
   const text = inputMessage.value.trim()
   if (!text) return
   inputMessage.value = ''
-  await chatStore.sendUserMessage(text)
+  await chatStore.sendUserMessage(text, mode)
 }
 
 onBeforeUnmount(() => {
@@ -159,22 +161,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-slate-950">
-    <!-- Zona Superior: Avatar 3D + Subtítulos en Vivo -->
-    <div class="border-b border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-slate-950 p-4 flex flex-col items-center">
-      <div class="w-full max-w-xl">
-        <AvatarCanvas />
-      </div>
-
-      <!-- Subtítulos sincronizados -->
-      <div class="mt-2 max-w-2xl w-full bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-2.5 text-center shadow-inner">
-        <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
-          {{ chatStore.liveSubtitle }}
-        </p>
-      </div>
-
-    </div>
-
+  <div class="flex h-full bg-slate-950">
+    <!-- Columna Izquierda: solo el chat -->
+    <div class="flex flex-col flex-1 min-w-0 h-full">
     <!-- Zona Central: Historial de Mensajes de la Conversación Activa -->
     <div class="flex-1 overflow-y-auto p-4 space-y-3 max-w-4xl w-full mx-auto">
       <div
@@ -218,6 +207,25 @@ onBeforeUnmount(() => {
           {{ msg.sender === 'USER' ? sessionStore.user?.name || 'Tú' : 'Remi-915' }} · {{ msg.createdAt }}
           <template v-if="msg.responseTimeMs"> · ⚡ {{ msg.responseTimeMs }} ms</template>
         </span>
+        <!-- Valoración de la respuesta (alimenta Estadísticas) -->
+        <div v-if="msg.sender === 'ASSISTANT' && msg.content" class="flex items-center gap-1 mt-1 px-1">
+          <button
+            @click="statsStore.setFeedback(msg.id, 1)"
+            title="Respuesta útil"
+            class="p-1 rounded-md transition cursor-pointer"
+            :class="statsStore.feedback[msg.id] === 1 ? 'text-emerald-400 bg-emerald-500/15' : 'text-slate-500 hover:text-slate-300'"
+          >
+            <ThumbsUp class="w-3.5 h-3.5" />
+          </button>
+          <button
+            @click="statsStore.setFeedback(msg.id, -1)"
+            title="Respuesta no útil"
+            class="p-1 rounded-md transition cursor-pointer"
+            :class="statsStore.feedback[msg.id] === -1 ? 'text-red-400 bg-red-500/15' : 'text-slate-500 hover:text-slate-300'"
+          >
+            <ThumbsDown class="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -249,14 +257,14 @@ onBeforeUnmount(() => {
 
         <input
           v-model="inputMessage"
-          @keyup.enter="handleSend"
+          @keyup.enter="handleSend()"
           type="text"
           placeholder="Escribe o usa el micrófono (ej. 'Me despidieron sin justa causa' o 'Mi vecino hace mucho ruido')..."
           class="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 text-xs sm:text-sm text-white focus:border-blue-500 focus:outline-none"
         />
 
         <button
-          @click="handleSend"
+          @click="handleSend()"
           class="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer"
         >
           <Send class="w-4 h-4" />
@@ -264,5 +272,16 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </div>
+    </div>
+    <!-- Columna Derecha: Avatar 3D + Subtítulos en Vivo -->
+    <div class="w-80 xl:w-96 shrink-0 border-l border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-slate-950 p-4 flex flex-col items-center justify-center overflow-y-auto">
+      <div class="w-full">
+        <AvatarCanvas />
+      </div>
+
+
+
+    </div>
+
   </div>
 </template>

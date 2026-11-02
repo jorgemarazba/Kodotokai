@@ -14,9 +14,11 @@ import {
 } from 'lucide-vue-next'
 import { useLawyersStore } from '@/stores/lawyers'
 import { useSessionStore } from '@/stores/session'
+import { useStatsStore } from '@/stores/stats'
 
 const lawyersStore = useLawyersStore()
 const sessionStore = useSessionStore()
+const statsStore = useStatsStore()
 
 const searchQuery = ref('')
 const selectedSpecialty = ref('ALL')
@@ -169,6 +171,7 @@ function buildWhatsAppUrl(whatsapp: string, lawyerName: string, serviceTitle: st
               <a
                 :href="buildWhatsAppUrl(lawyer.whatsapp, lawyer.fullName, lawyer.serviceTitle)"
                 target="_blank"
+                @click="statsStore.logContact('whatsapp', lawyer.id)"
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition"
               >
@@ -178,6 +181,7 @@ function buildWhatsAppUrl(whatsapp: string, lawyerName: string, serviceTitle: st
 
               <a
                 :href="`tel:${lawyer.phone}`"
+                @click="statsStore.logContact('phone', lawyer.id)"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition"
               >
                 <Phone class="w-3.5 h-3.5" />
@@ -186,6 +190,7 @@ function buildWhatsAppUrl(whatsapp: string, lawyerName: string, serviceTitle: st
 
               <a
                 :href="`mailto:${lawyer.email}?subject=Consulta Remi-915: ${lawyer.serviceTitle}`"
+                @click="statsStore.logContact('email', lawyer.id)"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
               >
                 <Mail class="w-3.5 h-3.5" />
