@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BarChart3, MessageSquare, Timer, ThumbsUp, Mic, Server, Phone, Trash2, Briefcase } from 'lucide-vue-next'
+import { BarChart3, MessageSquare, Timer, ThumbsUp, Star, Mic, Server, Phone, Trash2, Briefcase } from 'lucide-vue-next'
 import { useStatsStore } from '@/stores/stats'
 import { useLawyersStore } from '@/stores/lawyers'
 
@@ -68,7 +68,7 @@ function confirmReset() {
       </div>
 
       <!-- Tarjetas de totales -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div class="flex items-center gap-2 text-xs text-slate-400"><MessageSquare class="w-3.5 h-3.5 text-blue-400" />Consultas</div>
           <p class="text-2xl font-bold text-white mt-1">{{ stats.totalQueries }}</p>
@@ -78,6 +78,13 @@ function confirmReset() {
           <p class="text-2xl font-bold text-white mt-1">
             {{ stats.avgResponseMs ? (stats.avgResponseMs / 1000).toFixed(1) + ' s' : '—' }}
           </p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div class="flex items-center gap-2 text-xs text-slate-400"><Star class="w-3.5 h-3.5 text-amber-400" />Calificación estrellas</div>
+          <p class="text-2xl font-bold text-white mt-1">
+            {{ stats.avgRatingStars === null ? '—' : stats.avgRatingStars + ' ★' }}
+          </p>
+          <p class="text-[11px] text-slate-500">⭐ {{ stats.totalRatings }} valoraciones</p>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div class="flex items-center gap-2 text-xs text-slate-400"><ThumbsUp class="w-3.5 h-3.5 text-emerald-400" />Satisfacción</div>
@@ -146,6 +153,34 @@ function confirmReset() {
           <div v-for="t in stats.topLaws" :key="t.label" class="mb-2.5">
             <div class="flex justify-between text-xs text-slate-300 mb-1"><span class="truncate pr-2">{{ t.label }}</span><span>{{ t.count }}</span></div>
             <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-blue-500" :style="{ width: barPct(t.count, maxLaw) + '%' }"></div></div>
+          </div>
+        </section>
+
+        <!-- Desglose de Calificaciones 1 a 5 Estrellas -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <Star class="w-4 h-4 text-amber-400" />
+              <span>Calificación de atención (1 a 5★)</span>
+            </h3>
+            <span v-if="stats.avgRatingStars !== null" class="text-xs font-bold text-amber-300">
+              {{ stats.avgRatingStars }} / 5.0
+            </span>
+          </div>
+          <p v-if="!stats.totalRatings" class="text-xs text-slate-500">Aún no hay calificaciones registradas.</p>
+          <div v-else class="space-y-2">
+            <div v-for="item in stats.ratingsDistribution" :key="item.star">
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span class="flex items-center gap-1">{{ item.star }} ★</span>
+                <span>{{ item.count }} ({{ stats.totalRatings ? Math.round((item.count / stats.totalRatings) * 100) : 0 }}%)</span>
+              </div>
+              <div class="h-2 rounded-full bg-slate-800">
+                <div
+                  class="h-2 rounded-full bg-amber-400"
+                  :style="{ width: stats.totalRatings ? (item.count / stats.totalRatings) * 100 + '%' : '0%' }"
+                ></div>
+              </div>
+            </div>
           </div>
         </section>
 

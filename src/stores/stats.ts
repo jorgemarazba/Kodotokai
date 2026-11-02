@@ -23,9 +23,18 @@ export interface ContactEvent {
   lawyerId: string
 }
 
+export interface StarRating {
+  id: string
+  conversationId: string
+  stars: number
+  comment?: string
+  ts: number
+}
+
 interface PersistedStats {
   queries: QueryEvent[]
   feedback: Record<string, 1 | -1>
+  ratings: StarRating[]
   contacts: ContactEvent[]
 }
 
@@ -55,13 +64,14 @@ function loadPersisted(): PersistedStats {
       return {
         queries: parsed.queries ?? [],
         feedback: parsed.feedback ?? {},
+        ratings: parsed.ratings ?? [],
         contacts: parsed.contacts ?? [],
       }
     }
   } catch {
     // datos corruptos o localStorage no disponible: empezar de cero
   }
-  return { queries: [], feedback: {}, contacts: [] }
+  return { queries: [], feedback: {}, ratings: [], contacts: [] }
 }
 
 function countBy<T>(items: T[], keyFn: (item: T) => string[]): Array<{ label: string; count: number }> {
@@ -80,10 +90,11 @@ export const useStatsStore = defineStore('stats', () => {
   const initial = loadPersisted()
   const queries = ref<QueryEvent[]>(initial.queries)
   const feedback = ref<Record<string, 1 | -1>>(initial.feedback)
+  const ratings = ref<StarRating[]>(initial.ratings)
   const contacts = ref<ContactEvent[]>(initial.contacts)
 
   watch(
-    [queries, feedback, contacts],
+    [queries, feedback, ratings, contacts],
     () => {
       try {
         localStorage.setItem(
@@ -91,6 +102,7 @@ export const useStatsStore = defineStore('stats', () => {
           JSON.stringify({
             queries: queries.value.slice(-2000),
             feedback: feedback.value,
+            ratings: ratings.value.slice(-2000),
             contacts: contacts.value.slice(-2000),
           })
         )
@@ -133,9 +145,48 @@ export const useStatsStore = defineStore('stats', () => {
     contacts.value.push({ ts: Date.now(), channel, lawyerId })
   }
 
+  async function submitRating(payload: { conversationId: string; stars: number; comment?: string }) {
+    const existingIdx = ratings.value.findIndex((r) => r.conversationId === payload.conversationId)
+    const newRating: StarRating = {
+      id: existingIdx >= 0 && ratings.value[existingIdx] ? ratings.value[existingIdx].id : crypto.randomUUID(),
+      conversationId: payload.conversationId,
+      stars: payload.stars,
+      comment: payload.comment?.trim() || undefined,
+      ts: Date.now(),
+    }
+
+    if (existingIdx >= 0) {
+      ratings.value[existingIdx] = newRating
+    } else {
+      ratings.value.push(newRating)
+    }
+
+    // Enviar al backend si está disponible (endpoint /api/v1/feedback o /v1/feedback)
+    try {
+      const rawUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace(/\\/g, '/')
+      const endpoint = rawUrl.endsWith('/') ? `${rawUrl}feedback` : `${rawUrl}/feedback`
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stars: payload.stars,
+          conversation_id: payload.conversationId,
+          comment: payload.comment?.trim() || null,
+        }),
+      })
+    } catch {
+      // Si la API remota no está activa, la calificación se conserva en el almacenamiento local
+    }
+  }
+
+  function getRating(conversationId: string): StarRating | undefined {
+    return ratings.value.find((r) => r.conversationId === conversationId)
+  }
+
   function resetStats() {
     queries.value = []
     feedback.value = {}
+    ratings.value = []
     contacts.value = []
   }
 
@@ -193,12 +244,28 @@ export const useStatsStore = defineStore('stats', () => {
     return days
   })
 
+  const totalRatings = computed(() => ratings.value.length)
+  const avgRatingStars = computed(() => {
+    if (!ratings.value.length) return null
+    const sum = ratings.value.reduce((acc, r) => acc + r.stars, 0)
+    return +(sum / ratings.value.length).toFixed(1)
+  })
+  const ratingsDistribution = computed(() => {
+    return [5, 4, 3, 2, 1].map((star) => ({
+      star,
+      count: ratings.value.filter((r) => r.stars === star).length,
+    }))
+  })
+
   return {
     queries,
     feedback,
+    ratings,
     contacts,
     logQuery,
     setFeedback,
+    submitRating,
+    getRating,
     logContact,
     resetStats,
     totalQueries,
@@ -210,6 +277,9 @@ export const useStatsStore = defineStore('stats', () => {
     feedbackUp,
     feedbackDown,
     satisfactionPct,
+    totalRatings,
+    avgRatingStars,
+    ratingsDistribution,
     totalContacts,
     contactsByChannel,
     queriesLast7Days,

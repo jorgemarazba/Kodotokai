@@ -188,10 +188,10 @@ onBeforeUnmount(() => {
 <template>
   <div class="relative w-full pt-2 pb-1 flex flex-col items-center justify-center select-none overflow-hidden">
     <!-- Escenario del Personaje 3D de Medio Cuerpo (sin recuadro) -->
-    <div class="relative flex items-end justify-center w-64 h-64 sm:w-72 sm:h-72">
+    <div class="relative flex items-end justify-center w-72 h-72 sm:w-80 sm:h-80 xl:w-88 xl:h-88">
       <!-- Luz ambiental trasera dinámica según el estado del bot -->
       <div
-        class="absolute w-52 h-52 rounded-full blur-3xl transition-all duration-300 -z-0 bottom-6"
+        class="absolute w-60 h-60 sm:w-68 sm:h-68 rounded-full blur-3xl transition-all duration-300 -z-0 bottom-6"
         :class="{
           'bg-emerald-500/40 scale-110 animate-pulse': chatStore.avatarState === 'listening',
           'bg-amber-500/35 scale-105 animate-pulse': chatStore.avatarState === 'thinking',
@@ -205,12 +205,12 @@ onBeforeUnmount(() => {
         ref="canvasRef"
         width="440"
         height="520"
-        class="relative z-10 h-60 sm:h-68 w-auto object-contain drop-shadow-[0_12px_25px_rgba(37,99,235,0.35)]"
+        class="relative z-10 h-68 sm:h-76 xl:h-84 w-auto object-contain drop-shadow-[0_12px_25px_rgba(37,99,235,0.35)]"
       ></canvas>
 
       <!-- Base holográfica inferior -->
       <div
-        class="absolute bottom-0 w-48 h-2 rounded-full blur-sm transition-colors duration-300 z-20"
+        class="absolute bottom-0 w-56 sm:w-64 h-2.5 rounded-full blur-sm transition-colors duration-300 z-20"
         :class="{
           'bg-emerald-400/80': chatStore.avatarState === 'listening',
           'bg-amber-400/80': chatStore.avatarState === 'thinking',
