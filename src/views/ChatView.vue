@@ -16,6 +16,7 @@ let manualStop = false
 
 onMounted(() => {
   chatStore.loadSpanishVoices?.()
+  chatStore.playWelcomeGreeting()
 })
 
 function clearSilenceTimer() {
@@ -190,7 +191,16 @@ onBeforeUnmount(() => {
               : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-none'
           "
         >
-          <p>{{ msg.content }}</p>
+          <p v-if="msg.content">{{ msg.content }}</p>
+          <!-- Indicador "escribiendo..." mientras llega la respuesta -->
+          <div v-else-if="msg.sender === 'ASSISTANT'" class="flex items-center gap-2 text-slate-400">
+            <span>Remi-915 está escribiendo</span>
+            <span class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.3s]"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.15s]"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"></span>
+            </span>
+          </div>
 
           <!-- Artículos legales citados por el RAG -->
           <div v-if="msg.sources && msg.sources.length > 0" class="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap gap-1.5">

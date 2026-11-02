@@ -77,6 +77,9 @@ const DEFAULT_VOICE_PROFILES: VoiceOption[] = [
   },
 ]
 
+const WELCOME_TEXT =
+  'Hola, soy Remi-915, tu abogado orientador virtual. ¿En qué tema legal te puedo orientar hoy? Presiona el micrófono o escribe tu consulta.'
+
 export const useChatStore = defineStore('chat', () => {
   const sessionStore = useSessionStore()
 
@@ -85,9 +88,7 @@ export const useChatStore = defineStore('chat', () => {
   const avatarState = ref<'idle' | 'listening' | 'thinking' | 'speaking'>('idle')
   const avatarEmotion = ref<'neutral' | 'happy' | 'empatia' | 'serio'>('neutral')
   const currentViseme = ref<'aa' | 'ee' | 'ih' | 'oh' | 'ou' | 'sil'>('sil')
-  const liveSubtitle = ref<string>(
-    'Hola, soy Remi-915. Presiona el micrófono o escribe tu consulta legal para orientarte.'
-  )
+  const liveSubtitle = ref<string>(WELCOME_TEXT)
 
   const availableVoices = ref<VoiceOption[]>([...DEFAULT_VOICE_PROFILES])
   const selectedVoiceId = ref<string>('neural-gonzalo-co')
@@ -96,6 +97,8 @@ export const useChatStore = defineStore('chat', () => {
 
   let visemeInterval: ReturnType<typeof setInterval> | null = null
   let currentAudio: HTMLAudioElement | null = null
+  let speechStarted = false
+  let welcomeDone = false
   const neuralTtsAvailable = ref<boolean | null>(null)
 
   async function checkNeuralTtsStatus(): Promise<boolean> {
@@ -158,21 +161,29 @@ export const useChatStore = defineStore('chat', () => {
       userId: uid,
       title: 'Nueva consulta legal',
       updatedAt: 'Ahora',
-      messages: [
-        {
-          id: crypto.randomUUID(),
-          sender: 'ASSISTANT',
-          content: `Hola ${sessionStore.user?.name || ''}. Soy Remi-915, tu abogado orientador virtual. ¿En qué tema legal (laboral, arriendo, consumidor, tránsito, familia o convivencia) te puedo orientar hoy?`,
-          emotion: 'happy',
-          createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-        },
-      ],
+      messages: [],
     }
     conversations.value.unshift(newConv)
     activeConversationId.value = newConv.id
-    liveSubtitle.value = newConv.messages[0]!.content
+    liveSubtitle.value = WELCOME_TEXT
   }
 
+  // Saludo de bienvenida en audio al ingresar a la plataforma.
+  // Los navegadores pueden bloquear el audio automático: si no sonó, se reproduce en la primera interacción.
+  function playWelcomeGreeting() {
+    if (welcomeDone || typeof window === 'undefined') return
+    welcomeDone = true
+
+    speakWithLipSync(WELCOME_TEXT, 'happy')
+
+    const retryOnGesture = () => {
+      window.removeEventListener('pointerdown', retryOnGesture)
+      window.removeEventListener('keydown', retryOnGesture)
+      if (!speechStarted) speakWithLipSync(WELCOME_TEXT, 'happy')
+    }
+    window.addEventListener('pointerdown', retryOnGesture)
+    window.addEventListener('keydown', retryOnGesture)
+  }
   function selectConversation(id: string) {
     activeConversationId.value = id
     const conv = activeConversation.value
@@ -236,6 +247,7 @@ export const useChatStore = defineStore('chat', () => {
     if (!cleanText) return
 
     stopSpeaking()
+    speechStarted = false
     avatarEmotion.value = emotion
     liveSubtitle.value = cleanText
 
@@ -263,6 +275,7 @@ export const useChatStore = defineStore('chat', () => {
           currentAudio = audio
 
           audio.onplay = () => {
+            speechStarted = true
             startLipSyncAnimation()
           }
           audio.onended = () => {
@@ -300,6 +313,9 @@ export const useChatStore = defineStore('chat', () => {
       utterance.pitch = voicePitch.value
       utterance.rate = voiceRate.value
 
+      utterance.onstart = () => {
+        speechStarted = true
+      }
       utterance.onend = () => {
         stopSpeaking()
       }
@@ -409,7 +425,7 @@ export const useChatStore = defineStore('chat', () => {
     if (isQuickGreeting(content)) {
       const reply = content.toLowerCase().includes('gracias')
         ? `¡Con mucho gusto! Recuerda que también puedes revisar el directorio de abogados en Lawyers.`
-        : `¡Hola ${sessionStore.user?.name || ''}! Soy Remi-915, todo muy bien. Estoy conectado a la base legal. Cuéntame tu consulta sobre trabajo, arriendo, consumidor, tránsito, familia o convivencia y te respondo de inmediato.`
+        : `¡Hola${sessionStore.user?.name ? ' ' + sessionStore.user.name : ''}! Soy Remi-915, todo muy bien. Estoy conectado a la base legal. Cuéntame tu consulta sobre trabajo, arriendo, consumidor, tránsito, familia o convivencia y te respondo de inmediato.`
 
       const botMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -540,6 +556,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
+    playWelcomeGreeting,
     conversations,
     userConversations,
     activeConversationId,

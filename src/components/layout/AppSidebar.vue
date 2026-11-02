@@ -51,7 +51,7 @@ function openConversation(id: string) {
       </div>
       <div>
         <h1 class="font-bold text-base text-white tracking-tight">Remi-915 Colombia</h1>
-        <p class="text-xs text-slate-400">IA Local · Sesión Vectorial</p>
+        <p class="text-xs text-slate-400">IA Local</p>
       </div>
     </div>
 
@@ -91,16 +91,16 @@ function openConversation(id: string) {
       </button>
     </div>
 
-    <!-- Historial Privado del Usuario Activo -->
+    <!-- Historial de conversaciones -->
     <div class="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-      Historial de tu instancia
+      Historial
     </div>
     <div class="flex-1 overflow-y-auto px-3 space-y-1">
       <div
         v-if="chatStore.userConversations.length === 0"
         class="text-xs text-slate-500 px-2 py-4 text-center"
       >
-        Tus consultas privadas aparecerán aquí.
+        Tus consultas aparecerán aquí.
       </div>
       <button
         v-for="conv in chatStore.userConversations"

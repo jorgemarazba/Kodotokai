@@ -9,7 +9,21 @@ let animId = 0
 let botImg: HTMLImageElement | null = null
 const imgLoaded = ref(false)
 let currentJawDrop = 0
+let armAmp = 0
 
+// Brazos del personaje (coordenadas en píxeles de /avatar/bot.png, 752x896).
+// Cada polígono encierra manga + antebrazo sin tocar el chaleco; el pivote es el hombro.
+type Pt = [number, number]
+const SRC_W = 752
+const SRC_H = 896
+const LEFT_ARM = {
+  pivot: [125, 470] as Pt,
+  poly: [[0, 440], [112, 452], [158, 600], [162, 896], [0, 896]] as Pt[],
+}
+const RIGHT_ARM = {
+  pivot: [585, 470] as Pt,
+  poly: [[598, 445], [752, 445], [752, 896], [568, 896], [560, 760], [558, 620]] as Pt[],
+}
 onMounted(() => {
   const img = new Image()
   img.src = '/avatar/bot.png'
@@ -59,6 +73,39 @@ onMounted(() => {
       // 1. Dibujar el personaje original íntegro con fondo transparente
       ctx.drawImage(botImg, 0, 0, imgW, imgH, 0, 0, W, H)
 
+      // 1b. Gestos con los brazos mientras habla (balanceo suave desde el hombro)
+      armAmp += ((isSpeaking ? 1 : 0) - armAmp) * 0.08
+      if (armAmp > 0.01) {
+        const sx = W / SRC_W
+        const sy = H / SRC_H
+        const drawArm = (arm: { pivot: Pt; poly: Pt[] }, angle: number) => {
+          const tracePoly = () => {
+            ctx.beginPath()
+            arm.poly.forEach(([x, y], i) =>
+              i === 0 ? ctx.moveTo(x * sx, y * sy) : ctx.lineTo(x * sx, y * sy)
+            )
+            ctx.closePath()
+          }
+          // Borrar el brazo original y redibujarlo rotado alrededor del hombro
+          ctx.save()
+          ctx.globalCompositeOperation = 'destination-out'
+          tracePoly()
+          ctx.fill()
+          ctx.restore()
+
+          ctx.save()
+          ctx.translate(arm.pivot[0] * sx, arm.pivot[1] * sy)
+          ctx.rotate(angle)
+          ctx.translate(-arm.pivot[0] * sx, -arm.pivot[1] * sy)
+          tracePoly()
+          ctx.clip()
+          ctx.drawImage(botImg!, 0, 0, imgW, imgH, 0, 0, W, H)
+          ctx.restore()
+        }
+        // Ángulo positivo = el extremo del brazo se mueve hacia la izquierda de la pantalla
+        drawArm(LEFT_ARM, armAmp * (0.02 + 0.045 * Math.sin(t * 3.0)))
+        drawArm(RIGHT_ARM, -armAmp * (0.02 + 0.045 * Math.sin(t * 3.0 + 1.7)))
+      }
       // 2. Calcular apertura de mandíbula según el visema actual
       let targetDrop = 0
       if (isSpeaking) {
