@@ -437,25 +437,6 @@ export const useChatStore = defineStore('chat', () => {
     })
   }
 
-  function isQuickGreeting(text: string): boolean {
-    const clean = text.toLowerCase().replace(/[¿?¡!.,]/g, '').trim()
-    const greetings = [
-      'hola',
-      'hola como estas',
-      'hola cómo estás',
-      'buenos dias',
-      'buenos días',
-      'buenas tardes',
-      'buenas noches',
-      'buenas',
-      'que tal',
-      'qué tal',
-      'gracias',
-      'muchas gracias',
-    ]
-    return greetings.includes(clean)
-  }
-
   async function sendUserMessage(content: string, mode: 'text' | 'voice' = 'text') {
     if (!content.trim()) return
     if (!activeConversation.value) {
@@ -472,24 +453,6 @@ export const useChatStore = defineStore('chat', () => {
       content: content.trim(),
       createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
     })
-
-    if (isQuickGreeting(content)) {
-      const reply = content.toLowerCase().includes('gracias')
-        ? `¡Con mucho gusto! Recuerda que también puedes revisar el directorio de abogados en Lawyers.`
-        : `¡Hola${sessionStore.user?.name ? ' ' + sessionStore.user.name : ''}! Soy Remi-915, todo muy bien. Estoy conectado a la base legal. Cuéntame tu consulta sobre trabajo, arriendo, consumidor, tránsito, familia o convivencia y te respondo de inmediato.`
-
-      const botMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        sender: 'ASSISTANT',
-        content: reply,
-        emotion: 'happy',
-        responseTimeMs: 45,
-        createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-      }
-      conv.messages.push(botMsg)
-      speakWithLipSync(botMsg.content, 'happy')
-      return
-    }
 
     avatarState.value = 'thinking'
     liveSubtitle.value = 'Remi-915 consultando RAG + Ollama en tiempo real...'
@@ -570,53 +533,11 @@ export const useChatStore = defineStore('chat', () => {
       // Respaldo local
     }
 
-    const fallback = buildLocalLegalResponse(content)
-    reactiveBotMsg.content = fallback.text
-    reactiveBotMsg.emotion = fallback.emotion
-    reactiveBotMsg.sources = fallback.sources
-    reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
-    statsStore.logQuery({
-      question: content,
-      responseMs: reactiveBotMsg.responseTimeMs,
-      origin: 'local',
-      mode,
-      laws: fallback.sources.map((s) => s.lawName),
-    })
-    speakWithLipSync(reactiveBotMsg.content, fallback.emotion)
-  }
-
-  function buildLocalLegalResponse(
-    query: string
-  ): {
-    text: string
-    emotion: 'neutral' | 'happy' | 'empatia' | 'serio'
-  sources: LegalCitation[]
-  } {
-    const q = query.toLowerCase()
-    if (q.includes('despid') || q.includes('liquidaci') || q.includes('trabajo') || q.includes('sueldo')) {
-      return {
-        emotion: 'empatia',
-        text: `Según los artículos 64 y 65 del Código Sustantivo del Trabajo, ante un despido sin justa causa tienes derecho al pago inmediato de tu liquidación más la indemnización legal. Puedes contactar un abogado laboralista desde la sección Lawyers.`,
-        sources: [
-          {
-            lawName: 'CÓDIGO SUSTANTIVO DEL TRABAJO',
-            articleNumber: 'Arts. 64 y 65',
-            excerpt: 'Indemnización por despido sin justa causa.',
-          },
-        ],
-      }
-    }
-
-    return {
-      emotion: 'empatia',
-      text: `Para orientarte sobre "${query}", te aconsejo radicar primero un Derecho de Petición (Ley 1755 de 2015, plazo de 15 días hábiles) o consultar directamente a un especialista en la sección Lawyers del menú izquierdo.`,
-      sources: [
-        {
-          lawName: 'LEY 1755 DE 2015',
-          articleNumber: 'Art. 23 C.P.',
-          excerpt: 'Derecho fundamental de petición.',
-        },
-      ],
+    if (!reactiveBotMsg.content.trim()) {
+      reactiveBotMsg.content = 'No fue posible conectar con el servidor backend en http://localhost:8000. Por favor verifica que el backend esté ejecutándose.'
+      reactiveBotMsg.emotion = 'serio'
+      reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+      speakWithLipSync(reactiveBotMsg.content, 'serio')
     }
   }
 

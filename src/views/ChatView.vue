@@ -274,7 +274,7 @@ onBeforeUnmount(() => {
     </div>
     </div>
     <!-- Columna Derecha: Avatar 3D + Subtítulos en Vivo -->
-    <div class="w-80 xl:w-96 shrink-0 border-l border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-slate-950 p-4 flex flex-col items-center justify-center overflow-y-auto">
+    <div class="w-80 xl:w-96 shrink-0 border-l border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-slate-950 p-4 flex flex-col items-center justify-center overflow-hidden">
       <div class="w-full">
         <AvatarCanvas />
       </div>

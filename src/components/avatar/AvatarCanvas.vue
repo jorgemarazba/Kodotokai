@@ -265,9 +265,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative w-full h-full flex flex-col items-center justify-center select-none py-2">
+  <div class="relative w-full h-full flex flex-col items-center justify-center select-none py-2 overflow-hidden">
     <!-- Escenario del Personaje Completo con Encuadre Perfecto -->
-    <div class="relative flex items-center justify-center w-full max-w-[340px]">
+    <div class="relative flex items-center justify-center w-full max-w-full overflow-hidden">
       <!-- Luz ambiental trasera dinámica -->
       <div
         class="absolute w-64 h-72 rounded-full blur-3xl transition-all duration-300 -z-0"
@@ -284,7 +284,7 @@ onBeforeUnmount(() => {
         ref="canvasRef"
         width="440"
         height="560"
-        class="relative z-10 w-full h-auto object-contain drop-shadow-[0_12px_25px_rgba(37,99,235,0.35)]"
+        class="relative z-10 max-w-full h-auto object-contain drop-shadow-[0_12px_25px_rgba(37,99,235,0.35)]"
       ></canvas>
 
       <!-- Base holográfica inferior -->
