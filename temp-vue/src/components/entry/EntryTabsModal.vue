@@ -368,4 +368,4 @@ async function handleLawyerRegister() {
       </div>
     </div>
   </div>
-</template> 
+</template>
