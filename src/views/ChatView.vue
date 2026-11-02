@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
     <!-- Columna Izquierda: solo el chat -->
     <div class="flex flex-col flex-1 min-w-0 h-full">
     <!-- Zona Central: Historial de Mensajes de la Conversación Activa -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-3 max-w-4xl w-full mx-auto">
+    <div class="flex-1 overflow-y-auto p-4 space-y-3 max-w-6xl w-full mx-auto">
       <div
         v-for="msg in chatStore.activeConversation?.messages || []"
         :key="msg.id"
@@ -173,11 +173,11 @@ onBeforeUnmount(() => {
         :class="msg.sender === 'USER' ? 'items-end' : 'items-start'"
       >
         <div
-          class="max-w-2xl rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed"
+          class="rounded-2xl px-5 py-3.5 text-xs sm:text-sm leading-relaxed"
           :class="
             msg.sender === 'USER'
-              ? 'bg-blue-600 text-white rounded-br-none'
-              : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-none'
+              ? 'max-w-2xl sm:max-w-3xl bg-blue-600 text-white rounded-br-none'
+              : 'max-w-3xl sm:max-w-4xl xl:max-w-5xl bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-none shadow-sm'
           "
         >
           <p v-if="msg.content">{{ msg.content }}</p>
@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
 
     <!-- Barra Inferior: Botón de Micrófono por Voz + Input de Texto -->
     <div class="p-4 border-t border-slate-800 bg-slate-900/60">
-      <div class="max-w-4xl mx-auto flex items-center gap-2.5">
+      <div class="max-w-6xl mx-auto flex items-center gap-2.5">
         <button
           @click="toggleVoiceRecording"
           class="flex items-center gap-2 px-4 py-3 rounded-xl font-semibold text-xs sm:text-sm transition cursor-pointer shrink-0"
