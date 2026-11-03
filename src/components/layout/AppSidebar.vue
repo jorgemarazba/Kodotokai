@@ -157,45 +157,51 @@ function handleEdit() {
       <!-- 1. Inicio -->
       <button
         @click="handleGoHome"
-        class="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer group"
+        class="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/'
             ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
             : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
-          <img src="/icons/nav-inicio.png" alt="Inicio" class="w-full h-full object-contain" />
-        </div>
+        <img
+          src="/icons/nav-inicio.png"
+          alt="Inicio"
+          class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+        />
         <span>Inicio</span>
       </button>
 
       <!-- 2. Nueva instancia -->
       <button
         @click="handleNewInstance"
-        class="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white group"
+        class="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white group"
         title="Reinicia la sesión con un usuario limpio para volver a calificar"
       >
-        <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
-          <img src="/icons/nav-nueva-instancia.png" alt="Nueva instancia" class="w-full h-full object-contain" />
-        </div>
+        <img
+          src="/icons/nav-nueva-instancia.png"
+          alt="Nueva instancia"
+          class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+        />
         <span>Nueva instancia</span>
       </button>
 
       <!-- 3. Transporte y Servicio -->
       <button
         @click="handleNavigate('/servicios')"
-        class="w-full flex items-center justify-between px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer group"
+        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/servicios' || route.path === '/lawyers'
             ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
             : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <span class="flex items-center gap-3 min-w-0">
-          <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
-            <img src="/icons/nav-transporte.png" alt="Transporte y Servicio" class="w-full h-full object-contain scale-105" />
-          </div>
+        <span class="flex items-center gap-3.5 min-w-0">
+          <img
+            src="/icons/nav-transporte.png"
+            alt="Transporte y Servicio"
+            class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+          />
           <span class="truncate">Servicios & Transporte</span>
         </span>
         <span class="text-xs px-2 py-0.5 rounded-full bg-[#051813] text-emerald-300 border border-[#153e34]">
@@ -206,16 +212,18 @@ function handleEdit() {
       <!-- 4. Estadísticas -->
       <button
         @click="handleNavigate('/stats')"
-        class="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer group"
+        class="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/stats'
             ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
             : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
-          <img src="/icons/nav-estadisticas.png" alt="Estadísticas" class="w-full h-full object-contain" />
-        </div>
+        <img
+          src="/icons/nav-estadisticas.png"
+          alt="Estadísticas"
+          class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+        />
         <span>Estadísticas</span>
       </button>
     </div>

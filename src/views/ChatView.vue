@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex h-full bg-slate-950">
     <!-- Columna Izquierda: solo el chat -->
-    <div class="flex flex-col flex-1 min-w-0 h-full relative" style="background-color: #020617; background-image: url('/dark-marble-bg.svg'); background-size: cover; background-position: center;">
+    <div class="flex flex-col flex-1 min-w-0 h-full relative" style="background-color: #030f0c; background-image: url('/translogix-routes-bg.svg'); background-size: cover; background-position: center;">
       <!-- Panel de Avatar en Móvil (< lg) cuando se activa el botón Ver Avatar -->
       <div
         v-if="sessionStore.showMobileAvatar"

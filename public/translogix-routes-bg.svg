@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100">
+  <defs>
+    <!-- Fondo Base Gradiente: Verde Petróleo Profundo a Pizarra Noche -->
+    <radialGradient id="bg-radial" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#08221b"/>
+      <stop offset="35%" stop-color="#051913"/>
+      <stop offset="70%" stop-color="#030f0c"/>
+      <stop offset="100%" stop-color="#010605"/>
+    </radialGradient>
+
+    <!-- Resplandor de Nodo Satelital -->
+    <filter id="hub-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Resplandor Suave de Rutas -->
+    <filter id="route-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Gradientes para las Rutas Principales -->
+    <linearGradient id="route-emerald-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.15"/>
+      <stop offset="30%" stop-color="#34d399" stop-opacity="0.45"/>
+      <stop offset="70%" stop-color="#10b981" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#059669" stop-opacity="0.10"/>
+    </linearGradient>
+
+    <linearGradient id="route-emerald-2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#059669" stop-opacity="0.10"/>
+      <stop offset="40%" stop-color="#34d399" stop-opacity="0.50"/>
+      <stop offset="80%" stop-color="#10b981" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#047857" stop-opacity="0.15"/>
+    </linearGradient>
+
+    <linearGradient id="route-blue-express" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.40"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.25"/>
+    </linearGradient>
+
+    <!-- Patrón Cuadrícula GPS Tenue -->
+    <pattern id="gps-grid" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#10b981" stroke-width="0.75" stroke-opacity="0.06"/>
+      <circle cx="0" cy="0" r="1.5" fill="#34d399" fill-opacity="0.18"/>
+      <!-- Micro crosshair en el centro de cada celda -->
+      <path d="M 47 50 L 53 50 M 50 47 L 50 53" stroke="#10b981" stroke-width="0.6" stroke-opacity="0.10"/>
+    </pattern>
+
+    <!-- Micro Puntos Satelitales -->
+    <pattern id="dot-matrix" width="25" height="25" patternUnits="userSpaceOnUse">
+      <circle cx="12.5" cy="12.5" r="0.6" fill="#34d399" fill-opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <!-- 1. Fondo Gradiente Petróleo Oscuro -->
+  <rect width="100%" height="100%" fill="url(#bg-radial)"/>
+
+  <!-- 2. Matriz de Puntos y Cuadrícula GPS -->
+  <rect width="100%" height="100%" fill="url(#dot-matrix)"/>
+  <rect width="100%" height="100%" fill="url(#gps-grid)"/>
+
+  <!-- 3. Anillos de Radar / Cobertura Satelital GPS (Discretos) -->
+  <g opacity="0.18">
+    <!-- Centro Radar Principal (Bogotá Hub / Centro de Distribución) -->
+    <circle cx="820" cy="560" r="120" fill="none" stroke="#34d399" stroke-width="1" stroke-dasharray="5,5"/>
+    <circle cx="820" cy="560" r="240" fill="none" stroke="#10b981" stroke-width="0.8" stroke-dasharray="8,6"/>
+    <circle cx="820" cy="560" r="380" fill="none" stroke="#059669" stroke-width="0.6" stroke-dasharray="3,8"/>
+    <!-- Ejes del radar -->
+    <line x1="440" y1="560" x2="1200" y2="560" stroke="#10b981" stroke-width="0.6" stroke-dasharray="2,4"/>
+    <line x1="820" y1="180" x2="820" y2="940" stroke="#10b981" stroke-width="0.6" stroke-dasharray="2,4"/>
+  </g>
+
+  <!-- Radar Secundario Norte (Costa Caribe) -->
+  <g opacity="0.12">
+    <circle cx="1120" cy="220" r="140" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="4,6"/>
+    <circle cx="1120" cy="220" r="260" fill="none" stroke="#10b981" stroke-width="0.6" stroke-dasharray="6,8"/>
+  </g>
+
+  <!-- Radar Secundario Occidente (Pacífico / Valle) -->
+  <g opacity="0.12">
+    <circle cx="480" cy="680" r="160" fill="none" stroke="#10b981" stroke-width="0.8" stroke-dasharray="5,7"/>
+  </g>
+
+  <!-- 4. Corredores de Carga y Rutas Troncales Nacionales -->
+  <!-- Ruta Troncal 1: Corredor Central (Norte a Sur) -->
+  <path d="M 1120 180 Q 980 340 820 560 T 560 880" fill="none" stroke="url(#route-emerald-1)" stroke-width="2.4" filter="url(#route-glow)"/>
+  <path d="M 1120 180 Q 980 340 820 560 T 560 880" fill="none" stroke="#ffffff" stroke-width="0.8" stroke-dasharray="6,8" stroke-opacity="0.35"/>
+
+  <!-- Ruta Troncal 2: Corredor de Occidente (Buenaventura - Cali - Medellín) -->
+  <path d="M 360 820 Q 480 680 620 480 T 920 280" fill="none" stroke="url(#route-emerald-2)" stroke-width="2.2" filter="url(#route-glow)"/>
+  <path d="M 360 820 Q 480 680 620 480 T 920 280" fill="none" stroke="#34d399" stroke-width="0.75" stroke-dasharray="8,6" stroke-opacity="0.45"/>
+
+  <!-- Ruta Transversal Express 1: Eje Cafetero - Bogotá - Llanos -->
+  <path d="M 480 680 Q 640 600 820 560 T 1320 620" fill="none" stroke="url(#route-blue-express)" stroke-width="2.0" filter="url(#route-glow)"/>
+  <path d="M 480 680 Q 640 600 820 560 T 1320 620" fill="none" stroke="#ffffff" stroke-width="0.6" stroke-dasharray="4,6" stroke-opacity="0.30"/>
+
+  <!-- Ruta Ramal Norte: Medellín - Bucaramanga - Cúcuta -->
+  <path d="M 620 480 Q 820 420 1020 380 T 1280 320" fill="none" stroke="url(#route-emerald-1)" stroke-width="1.8" filter="url(#route-glow)"/>
+  <path d="M 620 480 Q 820 420 1020 380 T 1280 320" fill="none" stroke="#34d399" stroke-width="0.6" stroke-dasharray="5,7" stroke-opacity="0.35"/>
+
+  <!-- Ruta Alimentadora Sur: Cali - Popayán - Pasto - Frontera -->
+  <path d="M 480 680 Q 420 800 360 920 T 310 1040" fill="none" stroke="url(#route-emerald-2)" stroke-width="1.6" filter="url(#route-glow)"/>
+  <path d="M 480 680 Q 420 800 360 920 T 310 1040" fill="none" stroke="#10b981" stroke-width="0.6" stroke-dasharray="4,6" stroke-opacity="0.30"/>
+
+  <!-- Ruta de Cabotaje Caribe: Barranquilla - Cartagena - Santa Marta -->
+  <path d="M 980 140 Q 1120 180 1260 160" fill="none" stroke="url(#route-blue-express)" stroke-width="1.8" stroke-dasharray="7,5" filter="url(#route-glow)"/>
+
+  <!-- Enlace Secundario: Bogotá - Tunja - Duitama -->
+  <path d="M 820 560 L 960 460 L 1040 430" fill="none" stroke="url(#route-emerald-1)" stroke-width="1.4" stroke-dasharray="4,4" stroke-opacity="0.4"/>
+
+  <!-- 5. Nodos Satelitales / Centros Logísticos TransLogix (Hubs) -->
+  <!-- Hub Central Bogotá (Fontibón Zona Franca) -->
+  <g transform="translate(820, 560)" filter="url(#hub-glow)">
+    <circle r="16" fill="none" stroke="#34d399" stroke-width="1.2" stroke-opacity="0.4" stroke-dasharray="3,3"/>
+    <circle r="9" fill="none" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.7"/>
+    <circle r="4.5" fill="#34d399"/>
+    <circle r="2" fill="#ffffff"/>
+  </g>
+
+  <!-- Hub Medellín (Antioquia) -->
+  <g transform="translate(620, 480)" filter="url(#hub-glow)">
+    <circle r="12" fill="none" stroke="#10b981" stroke-width="1" stroke-opacity="0.4"/>
+    <circle r="6" fill="none" stroke="#34d399" stroke-width="1.2" stroke-opacity="0.7"/>
+    <circle r="3.5" fill="#34d399"/>
+    <circle r="1.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Hub Cali / Valle (Occidente) -->
+  <g transform="translate(480, 680)" filter="url(#hub-glow)">
+    <circle r="12" fill="none" stroke="#10b981" stroke-width="1" stroke-opacity="0.4"/>
+    <circle r="6" fill="none" stroke="#34d399" stroke-width="1.2" stroke-opacity="0.7"/>
+    <circle r="3.5" fill="#34d399"/>
+    <circle r="1.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Hub Barranquilla / Costa Norte -->
+  <g transform="translate(1120, 180)" filter="url(#hub-glow)">
+    <circle r="14" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.4"/>
+    <circle r="7" fill="none" stroke="#34d399" stroke-width="1.2" stroke-opacity="0.7"/>
+    <circle r="3.5" fill="#38bdf8"/>
+    <circle r="1.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Hub Bucaramanga (Nororiente) -->
+  <g transform="translate(1020, 380)">
+    <circle r="5" fill="none" stroke="#10b981" stroke-width="1" stroke-opacity="0.6"/>
+    <circle r="2.5" fill="#34d399"/>
+  </g>
+
+  <!-- Puerto Marítimo Buenaventura -->
+  <g transform="translate(360, 820)">
+    <circle r="6" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.7"/>
+    <circle r="2.5" fill="#38bdf8"/>
+  </g>
+
+  <!-- Hub Llanos (Villavicencio) -->
+  <g transform="translate(1010, 610)">
+    <circle r="5" fill="none" stroke="#10b981" stroke-width="1" stroke-opacity="0.5"/>
+    <circle r="2.5" fill="#34d399"/>
+  </g>
+
+  <!-- Hub Sur (Pasto) -->
+  <g transform="translate(360, 920)">
+    <circle r="5" fill="none" stroke="#10b981" stroke-width="1" stroke-opacity="0.5"/>
+    <circle r="2.5" fill="#34d399"/>
+  </g>
+
+  <!-- 6. Etiquetas Telemáticas Discretas de TransLogix -->
+  <g font-family="monospace" font-size="9" fill="#34d399" opacity="0.30" letter-spacing="1">
+    <text x="836" y="555">TLX-HUB-01 [BOG-ZF]</text>
+    <text x="836" y="570">4°42'N 74°09'W · 2600m</text>
+
+    <text x="636" y="475">TLX-MDE-02 [ANTIOQUIA]</text>
+    <text x="636" y="490">CORREDOR INDUSTRIAL</text>
+
+    <text x="496" y="675">TLX-CLO-03 [VALLE]</text>
+    <text x="496" y="690">LOGÍSTICA PACÍFICO</text>
+
+    <text x="1136" y="175">TLX-BAQ-04 [CARIBE]</text>
+    <text x="1136" y="190">PUERTO FLUVIAL/MAR</text>
+
+    <text x="376" y="818">ZONA PORTUARIA [B/VENTURA]</text>
+
+    <text x="60" y="80">TRANSLOGIX EXPRESS · RED NACIONAL SATELITAL</text>
+    <text x="60" y="96">TELEMETRÍA GPS ACTIVA · FLOTA FTL / LTL</text>
+
+    <text x="1350" y="1030">SYS-MONITOR v2.4</text>
+    <text x="1350" y="1046">STATUS: OPERATIVO</text>
+  </g>
+
+  <!-- 7. Pulso de Telemetría Dinámico (Pequeños Destellos de Envío en Ruta) -->
+  <g fill="#ffffff" opacity="0.75" filter="url(#hub-glow)">
+    <circle cx="730" cy="510" r="2"/>
+    <circle cx="910" cy="410" r="1.8"/>
+    <circle cx="680" cy="620" r="1.8"/>
+    <circle cx="1060" cy="280" r="2"/>
+    <circle cx="430" cy="740" r="1.6"/>
+  </g>
+
+  <!-- 8. Viñeta Suave en Esquinas para Mayor Enfoque en el Chat -->
+  <radialGradient id="vignette" cx="50%" cy="50%" r="65%">
+    <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#010605" stop-opacity="0.60"/>
+  </radialGradient>
+  <rect width="100%" height="100%" fill="url(#vignette)"/>
+</svg>

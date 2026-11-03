@@ -97,9 +97,7 @@ function getServiceIcon(iconName: string) {
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div class="space-y-1.5">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-semibold uppercase tracking-wider">
-              <div class="w-5 h-5 rounded bg-white/95 p-0.5 flex items-center justify-center shrink-0 shadow-sm border border-white/20 inline-flex">
-                <img src="/icons/nav-transporte.png" alt="Transporte" class="w-full h-full object-contain" />
-              </div>
+              <img src="/icons/nav-transporte.png" alt="Transporte" class="w-6 h-6 object-contain inline shrink-0" />
               <span>TransLogix Colombia S.A.S. · NIT 901.684.329-8</span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
