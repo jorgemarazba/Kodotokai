@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   Scale,
   Home,
+  RotateCcw,
   Briefcase,
   BarChart3,
   UserPlus,
@@ -31,6 +32,13 @@ const showSettings = ref(false)
 
 function handleGoHome() {
   router.push('/')
+}
+
+function handleNewInstance() {
+  chatStore.startNewInstance()
+  if (route.path !== '/') {
+    router.push('/')
+  }
 }
 
 function handleVoiceChange(event: Event) {
@@ -62,6 +70,13 @@ const ratingLabels: Record<number, string> = {
 }
 
 const activeScore = computed(() => hoverStars.value || selectedStars.value)
+
+watch(targetConvId, () => {
+  hoverStars.value = 0
+  isEditing.value = false
+  showCommentInput.value = false
+  comment.value = currentRating.value?.comment || ''
+})
 
 async function handleRate(stars: number) {
   isSaving.value = true
@@ -108,7 +123,7 @@ function handleEdit() {
 
     <!-- Navegación Principal (Orden exacto: Inicio -> Lawyers -> Estadísticas) -->
     <div class="p-3 space-y-1.5">
-      <!-- 1. Inicio (cambiado de Nuevo chat) -->
+      <!-- 1. Inicio -->
       <button
         @click="handleGoHome"
         class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
@@ -120,6 +135,16 @@ function handleEdit() {
       >
         <Home class="w-4 h-4" />
         <span>Inicio</span>
+      </button>
+
+      <!-- 2. Nueva instancia (Debajo de Inicio) -->
+      <button
+        @click="handleNewInstance"
+        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white group"
+        title="Reinicia la sesión con un usuario limpio para volver a calificar"
+      >
+        <RotateCcw class="w-4 h-4 text-emerald-400 group-hover:rotate-[-45deg] transition-transform" />
+        <span>Nueva instancia</span>
       </button>
 
       <!-- 2. Lawyers -->

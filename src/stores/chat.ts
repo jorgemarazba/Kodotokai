@@ -216,6 +216,15 @@ export const useChatStore = defineStore('chat', () => {
     liveSubtitle.value = WELCOME_TEXT
   }
 
+
+  function startNewInstance() {
+    stopSpeaking()
+    startNewChat()
+    welcomeDone = false
+    speechStarted = false
+    playWelcomeGreeting()
+  }
+
   // Saludo de bienvenida en audio al ingresar a la plataforma.
   // Los navegadores pueden bloquear el audio automático: si no sonó, se reproduce en la primera interacción.
   function playWelcomeGreeting() {
@@ -560,6 +569,7 @@ export const useChatStore = defineStore('chat', () => {
     loadSpanishVoices,
     applyVoiceProfile,
     startNewChat,
+    startNewInstance,
     selectConversation,
     sendUserMessage,
     speakWithLipSync,
