@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useChatStore } from '@/stores/chat'
+import { Truck } from 'lucide-vue-next'
 
 const chatStore = useChatStore()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -31,7 +32,6 @@ onMounted(() => {
     const W = canvas.width
     const H = canvas.height
 
-    // Fondo 100% transparente (sin recuadro)
     ctx.clearRect(0, 0, W, H)
 
     if (botImg && imgLoaded.value) {
@@ -40,120 +40,79 @@ onMounted(() => {
       const isSpeaking = chatStore.avatarState === 'speaking'
       const isListening = chatStore.avatarState === 'listening'
 
-      // Movimiento natural de respiración y gesto al hablar
-      const breathY = Math.sin(t * 2.1) * 2.2
-      const talkBobY = isSpeaking ? Math.sin(t * 11) * 1.1 : 0
+      // Movimiento natural de respiración y ligera inclinación al hablar
+      const breathY = Math.sin(t * 2.0) * 1.5
+      const talkBobY = isSpeaking ? Math.sin(t * 10) * 0.8 : 0
       const headTilt = isSpeaking
-        ? Math.sin(t * 4.2) * 0.007
+        ? Math.sin(t * 3.8) * 0.005
         : isListening
-          ? -0.01
-          : Math.sin(t * 1.1) * 0.003
+          ? -0.007
+          : Math.sin(t * 1.2) * 0.002
 
-      ctx.translate(W / 2, H * 0.55 + breathY + talkBobY)
+      ctx.translate(W / 2, H * 0.45 + breathY + talkBobY)
       ctx.rotate(headTilt)
-      ctx.translate(-W / 2, -H * 0.55)
+      ctx.translate(-W / 2, -H * 0.45)
 
       const imgW = botImg.naturalWidth
       const imgH = botImg.naturalHeight
 
-      // 1a. Dibujar torso, cabeza y brazo derecho con reloj en un solo bloque íntegro
-      const splitX = Math.floor(W * 0.20)
-      const srcSplitX = (splitX / W) * imgW
+      // 1. Dibujar el avatar completo en alta resolución (Remi con el camión TransLogix de fondo)
+      ctx.drawImage(botImg, 0, 0, imgW, imgH, 0, 0, W, H)
 
-      ctx.drawImage(
-        botImg,
-        srcSplitX,
-        0,
-        imgW - srcSplitX,
-        imgH,
-        splitX,
-        0,
-        W - splitX,
-        H
-      )
-
-      // 1b. Movimiento suave y continuo del brazo izquierdo sin recortes
-      const armSwingX = isSpeaking ? Math.sin(t * 3.4) * 5.0 : Math.sin(t * 1.5) * 1.0
-      const armSwingY = isSpeaking ? Math.cos(t * 3.4) * 2.2 : Math.sin(t * 1.5) * 0.5
-      const step = 2
-
-      for (let x = 0; x < splitX; x += step) {
-        const u = 1 - x / splitX
-        const w = u * u * (3 - 2 * u) // Hermite smoothstep: 0 exacto en el hombro, 1 en el extremo
-        const dx = armSwingX * w
-        const dy = armSwingY * w
-
-        const srcX = (x / W) * imgW
-        const srcColW = (step / W) * imgW
-
-        ctx.drawImage(
-          botImg,
-          srcX,
-          0,
-          srcColW + 0.6,
-          imgH,
-          x + dx,
-          dy,
-          step + 0.6,
-          H
-        )
-      }
-
-      // 2. Calcular apertura de mandíbula según el visema actual
+      // 2. Apertura dinámica de la mandíbula según el visema actual
       let targetDrop = 0
       if (isSpeaking) {
         const v = chatStore.currentViseme
-        const osc = 0.72 + 0.28 * Math.sin(t * 28)
-        if (v === 'aa') targetDrop = 6.8 * osc
-        else if (v === 'oh') targetDrop = 5.6 * osc
-        else if (v === 'ee') targetDrop = 4.0 * osc
-        else if (v === 'ih') targetDrop = 3.2 * osc
-        else if (v === 'ou') targetDrop = 4.6 * osc
-        else targetDrop = 0.8
+        const osc = 0.70 + 0.30 * Math.sin(t * 26)
+        if (v === 'aa') targetDrop = 4.6 * osc
+        else if (v === 'oh') targetDrop = 3.8 * osc
+        else if (v === 'ee') targetDrop = 2.6 * osc
+        else if (v === 'ih') targetDrop = 2.0 * osc
+        else if (v === 'ou') targetDrop = 3.0 * osc
+        else targetDrop = 0.5
       }
 
-      // Suavizado de mandíbula
+      // Suavizado inercial de la mandíbula
       currentJawDrop += (targetDrop - currentJawDrop) * 0.35
 
-      // 3. Deformación siguiendo la CURVA EN "U" DE LA SONRISA:
-      // - En el centro (dx = 0) empieza en 0.3310*H (debajo de los dientes centrales, sin bajar blanco)
-      // - Hacia los lados (dx -> ±1) sube en parábola (0.3310 - 0.0095*dx²) siguiendo los dientes sin salirse al labio
-      if (currentJawDrop > 0.2) {
-        const leftX = Math.floor(W * 0.430)
-        const rightX = Math.ceil(W * 0.520)
-        const endY = H * 0.382
+      // 3. Deformación realista de la sonrisa de Remi (TransLogix):
+      // - Coordenadas calibradas para la boca de Remi (x: 316 a 377 en 696px -> 0.454 a 0.542 de W)
+      // - Parábola que sigue el contorno curvo de los dientes superiores
+      if (currentJawDrop > 0.15) {
+        const leftX = Math.floor(W * 0.454)
+        const rightX = Math.ceil(W * 0.542)
+        const endY = H * 0.310
 
         for (let x = leftX; x <= rightX; x++) {
-          const u = (x - leftX) / (rightX - leftX) // 0 a 1
-          const dx = (u - 0.5) * 2                 // -1 a +1
+          const u = (x - leftX) / (rightX - leftX)
+          const dx = (u - 0.5) * 2
 
-          // Curva suave que se hace 0 antes de tocar las comisuras
-          const arch = Math.pow(Math.sin(u * Math.PI), 1.85)
+          // Arco parabólico suave
+          const arch = Math.pow(Math.sin(u * Math.PI), 1.8)
           const dropAtX = currentJawDrop * arch
 
           if (dropAtX < 0.2) continue
 
-          // Parábola que sigue el borde inferior curvo de los dientes superiores
-          const splitYAtX = H * (0.3310 - 0.0095 * (dx * dx))
+          const splitYAtX = H * (0.2220 - 0.0050 * (dx * dx))
           const zoneH = endY - splitYAtX
 
           const srcSplitY = (splitYAtX / H) * imgH
           const srcZoneH = (zoneH / H) * imgH
 
-          // A) Cavidad interior cálida siguiendo la curva de la sonrisa
+          // Cavidad interior de la boca con gradiente
           const cavityGrad = ctx.createLinearGradient(
             0,
             splitYAtX - 0.3,
             0,
             splitYAtX + dropAtX + 1.2
           )
-          cavityGrad.addColorStop(0, '#2b0d10')
-          cavityGrad.addColorStop(0.55, '#47171c')
-          cavityGrad.addColorStop(1, '#68262c')
+          cavityGrad.addColorStop(0, '#1c080a')
+          cavityGrad.addColorStop(0.55, '#3b1216')
+          cavityGrad.addColorStop(1, '#571c22')
           ctx.fillStyle = cavityGrad
           ctx.fillRect(x, splitYAtX - 0.2, 1.35, dropAtX + 1.2)
 
-          // B) Empujar únicamente el labio inferior + mentón desde splitYAtX hacia abajo
+          // Proyectar el labio inferior y mentón hacia abajo
           const srcX = (x / W) * imgW
           const srcColW = (1.35 / W) * imgW
           const dstY = splitYAtX + dropAtX
@@ -186,38 +145,59 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative w-full pt-2 pb-1 flex flex-col items-center justify-center select-none overflow-hidden">
-    <!-- Escenario del Personaje 3D de Medio Cuerpo (sin recuadro) -->
-    <div class="relative flex items-end justify-center w-72 h-72 sm:w-80 sm:h-80 xl:w-88 xl:h-88">
-      <!-- Luz ambiental trasera dinámica según el estado del bot -->
+  <div class="relative w-full flex flex-col items-center justify-center select-none">
+    <!-- Marco elegante del Avatar 3D de Remi -->
+    <div class="relative flex flex-col items-center justify-center w-full max-w-[340px] xl:max-w-[380px]">
+      <!-- Resplandor dinámico trasero según el estado -->
       <div
-        class="absolute w-60 h-60 sm:w-68 sm:h-68 rounded-full blur-3xl transition-all duration-300 -z-0 bottom-6"
+        class="absolute w-64 h-64 sm:w-72 sm:h-72 rounded-full blur-3xl transition-all duration-300 -z-0 top-10"
         :class="{
-          'bg-emerald-500/40 scale-110 animate-pulse': chatStore.avatarState === 'listening',
-          'bg-amber-500/35 scale-105 animate-pulse': chatStore.avatarState === 'thinking',
-          'bg-blue-500/50': chatStore.avatarState === 'speaking',
-          'bg-blue-600/25': chatStore.avatarState === 'idle',
+          'bg-emerald-500/35 scale-110 animate-pulse': chatStore.avatarState === 'listening',
+          'bg-amber-500/30 scale-105 animate-pulse': chatStore.avatarState === 'thinking',
+          'bg-blue-500/40': chatStore.avatarState === 'speaking',
+          'bg-emerald-600/20': chatStore.avatarState === 'idle',
         }"
       ></div>
 
-      <!-- Canvas 2D transparente con Lip-Sync curvo original sobre su sonrisa -->
-      <canvas
-        ref="canvasRef"
-        width="440"
-        height="520"
-        class="relative z-10 h-68 sm:h-76 xl:h-84 w-auto object-contain drop-shadow-[0_12px_25px_rgba(37,99,235,0.35)]"
-      ></canvas>
+      <!-- Canvas 2D con borde suave y sombra estética -->
+      <div class="relative z-10 w-full rounded-3xl overflow-hidden border border-slate-800/80 bg-slate-950/80 shadow-2xl shadow-blue-950/40">
+        <canvas
+          ref="canvasRef"
+          width="580"
+          height="460"
+          class="w-full h-auto object-cover block"
+        ></canvas>
 
-      <!-- Base holográfica inferior -->
-      <div
-        class="absolute bottom-0 w-56 sm:w-64 h-2.5 rounded-full blur-sm transition-colors duration-300 z-20"
-        :class="{
-          'bg-emerald-400/80': chatStore.avatarState === 'listening',
-          'bg-amber-400/80': chatStore.avatarState === 'thinking',
-          'bg-blue-400': chatStore.avatarState === 'speaking',
-          'bg-blue-500/40': chatStore.avatarState === 'idle',
-        }"
-      ></div>
+        <!-- Etiqueta Flotante Superior: TransLogix Express -->
+        <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/60 text-[10px] text-slate-200 font-semibold shadow-md">
+          <Truck class="w-3 h-3 text-emerald-400" />
+          <span>Remi · TransLogix</span>
+        </div>
+
+        <!-- Indicador de Estado en Tiempo Real -->
+        <div class="absolute bottom-2.5 right-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/60 text-[10px] font-medium shadow-md">
+          <span
+            class="w-2 h-2 rounded-full"
+            :class="{
+              'bg-emerald-400 animate-ping': chatStore.avatarState === 'listening',
+              'bg-emerald-400': chatStore.avatarState === 'idle',
+              'bg-amber-400 animate-pulse': chatStore.avatarState === 'thinking',
+              'bg-blue-400 animate-pulse': chatStore.avatarState === 'speaking',
+            }"
+          ></span>
+          <span class="text-slate-200">
+            {{
+              chatStore.avatarState === 'speaking'
+                ? 'Hablando'
+                : chatStore.avatarState === 'listening'
+                ? 'Escuchando'
+                : chatStore.avatarState === 'thinking'
+                ? 'Cotizando'
+                : 'En línea'
+            }}
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 </template>

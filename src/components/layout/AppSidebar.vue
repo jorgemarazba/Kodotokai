@@ -2,8 +2,10 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  Scale,
+  Truck,
+  PackageCheck,
   Home,
+  X,
   RotateCcw,
   Briefcase,
   BarChart3,
@@ -31,14 +33,26 @@ const statsStore = useStatsStore()
 const showSettings = ref(false)
 
 function handleGoHome() {
+  sessionStore.closeMobileSidebar()
   router.push('/')
 }
 
 function handleNewInstance() {
+  sessionStore.closeMobileSidebar()
   chatStore.startNewInstance()
   if (route.path !== '/') {
     router.push('/')
   }
+}
+
+function handleNavigate(path: string) {
+  sessionStore.closeMobileSidebar()
+  router.push(path)
+}
+
+function handleOpenRegister() {
+  sessionStore.closeMobileSidebar()
+  sessionStore.openEntryTab('service-register')
 }
 
 function handleVoiceChange(event: Event) {
@@ -109,16 +123,36 @@ function handleEdit() {
 </script>
 
 <template>
-  <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col h-full select-none shrink-0">
-    <!-- Logo Superior -->
-    <div class="p-4 border-b border-slate-800 flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-        <Scale class="w-5 h-5 text-white" />
+  <!-- Backdrop oscuro para móvil cuando el sidebar está abierto -->
+  <div
+    v-if="sessionStore.isMobileSidebarOpen"
+    @click="sessionStore.closeMobileSidebar()"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+  ></div>
+
+  <!-- Sidebar: en desktop es fija (lg:static / lg:translate-x-0); en móvil es drawer flotante (fixed z-50) -->
+  <aside
+    class="fixed lg:static top-0 bottom-0 left-0 z-50 w-72 bg-gradient-to-b from-[#0b241e] via-[#081c17] to-[#04100d] border-r border-[#153e34]/70 flex flex-col h-full select-none shrink-0 transition-transform duration-300 ease-in-out"
+    :class="sessionStore.isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'"
+  >
+    <!-- Logo Superior con botón para cerrar en móvil -->
+    <div class="p-4 border-b border-[#153e34]/60 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 flex items-center justify-center shrink-0">
+          <img src="/translogix-cab-trans.png" alt="TransLogix Express" class="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(34,197,94,0.3)]" />
+        </div>
+        <div>
+          <h1 class="font-bold text-base text-white tracking-tight">TransLogix Colombia</h1>
+          <p class="text-xs text-emerald-400 font-medium">Logística & Transporte</p>
+        </div>
       </div>
-      <div>
-        <h1 class="font-bold text-base text-white tracking-tight">Remi-915 Colombia</h1>
-        <p class="text-xs text-slate-400">IA Local</p>
-      </div>
+      <button
+        @click="sessionStore.closeMobileSidebar()"
+        class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#0f2e26] transition cursor-pointer"
+        aria-label="Cerrar menú"
+      >
+        <X class="w-5 h-5" />
+      </button>
     </div>
 
     <!-- Navegación Principal (Orden exacto: Inicio -> Lawyers -> Estadísticas) -->
@@ -140,35 +174,37 @@ function handleEdit() {
       <!-- 2. Nueva instancia (Debajo de Inicio) -->
       <button
         @click="handleNewInstance"
-        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white group"
+        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-[#0f2e26]/70 hover:text-white group"
         title="Reinicia la sesión con un usuario limpio para volver a calificar"
       >
         <RotateCcw class="w-4 h-4 text-emerald-400 group-hover:rotate-[-45deg] transition-transform" />
         <span>Nueva instancia</span>
       </button>
 
-      <!-- 2. Lawyers -->
+      <!-- 2. Servicios & Transporte -->
       <button
-        @click="router.push('/lawyers')"
+        @click="handleNavigate('/servicios')"
         class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
         :class="
-          route.path === '/lawyers'
+          route.path === '/servicios' || route.path === '/lawyers'
             ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
             : 'text-slate-300 hover:bg-slate-800'
         "
       >
-        <span class="flex items-center gap-3">
-          <Briefcase class="w-4 h-4" />
-          <span>Lawyers</span>
+        <span class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 p-1 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/20">
+            <img src="/logo.png" alt="Servicios y Transporte" class="w-full h-full object-contain filter drop-shadow scale-110" />
+          </div>
+          <span class="truncate">Servicios & Transporte</span>
         </span>
         <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-blue-300 border border-slate-700">
-          {{ lawyersStore.lawyers.length }}
+          5
         </span>
       </button>
 
       <!-- 3. Estadísticas -->
       <button
-        @click="router.push('/stats')"
+        @click="handleNavigate('/stats')"
         class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
         :class="
           route.path === '/stats'
@@ -184,7 +220,7 @@ function handleEdit() {
     <!-- Sección de Calificación de Satisfacción (1 a 5 Estrellas) en el Sidebar -->
     <!-- (El Historial fue removido según solicitud) -->
     <div class="flex-1 min-h-0 overflow-y-auto px-3 py-2 flex flex-col justify-end">
-      <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 shadow-sm space-y-3">
+      <div class="bg-[#04120e]/85 border border-[#153e34]/80 rounded-2xl p-3.5 shadow-sm space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-semibold uppercase tracking-wider text-amber-300/90 flex items-center gap-1.5">
             <Star class="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -215,7 +251,7 @@ function handleEdit() {
             {{ ratingLabels[selectedStars] }}
           </p>
 
-          <p v-if="currentRating?.comment" class="text-[11px] text-slate-300 bg-slate-900 border border-slate-800 rounded-lg p-2 italic truncate">
+          <p v-if="currentRating?.comment" class="text-[11px] text-slate-300 bg-[#061813] border border-[#153e34] rounded-lg p-2 italic truncate">
             "{{ currentRating.comment }}"
           </p>
 
@@ -231,7 +267,7 @@ function handleEdit() {
         <!-- Estado: Por calificar o Editando -->
         <div v-else class="space-y-2.5">
           <p class="text-xs text-slate-300 text-center leading-snug">
-            ¿Cómo evalúas tu experiencia con Remi-915?
+            ¿Cómo evalúas tu experiencia con Remi en TransLogix Colombia?
           </p>
 
           <!-- 5 Estrellas interactivas -->
@@ -270,12 +306,12 @@ function handleEdit() {
             </button>
           </div>
 
-          <div v-else class="space-y-1.5 pt-1 border-t border-slate-800">
+          <div v-else class="space-y-1.5 pt-1 border-t border-[#153e34]/70">
             <textarea
               v-model="comment"
               rows="2"
               placeholder="Escribe tu sugerencia..."
-              class="w-full text-xs text-slate-100 bg-slate-900 border border-slate-800 rounded-lg p-2 focus:border-amber-400/60 focus:outline-none resize-none"
+              class="w-full text-xs text-slate-100 bg-[#061813] border border-[#153e34] rounded-lg p-2 focus:border-amber-400/60 focus:outline-none resize-none"
             ></textarea>
             <div class="flex items-center justify-end gap-1.5">
               <button
@@ -299,17 +335,17 @@ function handleEdit() {
     </div>
 
     <!-- Botón Registro de Servicio y Ajustes de Voz -->
-    <div class="p-3 border-t border-slate-800 space-y-2.5 bg-slate-950/50">
+    <div class="p-3 border-t border-[#153e34]/70 space-y-2.5 bg-[#030e0b]/90">
       <button
-        @click="sessionStore.openEntryTab('service-register')"
+        @click="handleOpenRegister"
         class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition cursor-pointer"
       >
-        <UserPlus class="w-3.5 h-3.5" />
-        <span>Registro de servicio (Abogados)</span>
+        <PackageCheck class="w-3.5 h-3.5" />
+        <span>Cotizar Envío / Servicio</span>
       </button>
 
       <div v-if="showSettings" class="space-y-2 text-[11px] text-slate-300">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+        <div class="flex items-center gap-1.5 bg-[#061813] border border-[#153e34] rounded-lg px-2.5 py-1.5">
           <Volume2 class="w-3.5 h-3.5 text-blue-400 shrink-0" />
           <span class="text-slate-400">Voz:</span>
           <select
@@ -321,14 +357,14 @@ function handleEdit() {
               v-for="v in chatStore.availableVoices"
               :key="v.id"
               :value="v.id"
-              class="bg-slate-900 text-slate-200"
+              class="bg-[#061813] text-slate-200"
             >
               {{ v.label }}
             </option>
           </select>
         </div>
 
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+        <div class="flex items-center gap-1.5 bg-[#061813] border border-[#153e34] rounded-lg px-2.5 py-1.5">
           <span class="text-slate-400">Timbre:</span>
           <select
             v-model.number="chatStore.voicePitch"
@@ -346,7 +382,7 @@ function handleEdit() {
       <!-- Configuración: Voz y Timbre del avatar -->
       <button
         @click="showSettings = !showSettings"
-        class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 border border-slate-800 transition cursor-pointer"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-[#0f2e26]/80 border border-[#153e34] transition cursor-pointer"
       >
         <span class="flex items-center gap-2">
           <Settings class="w-3.5 h-3.5" />

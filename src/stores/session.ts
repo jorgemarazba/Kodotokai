@@ -46,16 +46,36 @@ export const useSessionStore = defineStore('session', () => {
   const user = ref<SessionUser | null>(null)
   const showEntryModal = ref<boolean>(false)
   const entryActiveTab = ref<'user' | 'service-register'>('user')
+  const isMobileSidebarOpen = ref<boolean>(false)
+  const showMobileAvatar = ref<boolean>(false)
 
   function openEntryTab(tab: 'user' | 'service-register') {
     entryActiveTab.value = tab
     showEntryModal.value = true
+    isMobileSidebarOpen.value = false
+  }
+
+  function toggleMobileSidebar() {
+    isMobileSidebarOpen.value = !isMobileSidebarOpen.value
+  }
+
+  function closeMobileSidebar() {
+    isMobileSidebarOpen.value = false
+  }
+
+  function toggleMobileAvatar() {
+    showMobileAvatar.value = !showMobileAvatar.value
   }
 
   return {
     user,
     showEntryModal,
     entryActiveTab,
+    isMobileSidebarOpen,
+    showMobileAvatar,
     openEntryTab,
+    toggleMobileSidebar,
+    closeMobileSidebar,
+    toggleMobileAvatar,
   }
 })

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useSessionStore } from './session'
 import { useStatsStore } from './stats'
+import { generateTranslogixResponse } from '@/services/translogixAssistant'
 
 export interface LegalCitation {
   lawName: string
@@ -123,7 +124,7 @@ const DEFAULT_VOICE_PROFILES: VoiceOption[] = [
 ]
 
 const WELCOME_TEXT =
-  'Hola, soy Remi-915, tu abogado orientador virtual. ¿En qué tema legal te puedo orientar hoy? Presiona el micrófono o escribe tu consulta.'
+  'Hola, soy Remi, tu asesor logístico de TransLogix Colombia. ¿En qué servicio de transporte, cotización de fletes o rastreo te puedo orientar hoy?'
 
 export const useChatStore = defineStore('chat', () => {
   const sessionStore = useSessionStore()
@@ -207,7 +208,7 @@ export const useChatStore = defineStore('chat', () => {
     const newConv: ConversationItem = {
       id: crypto.randomUUID(),
       userId: uid,
-      title: 'Nueva consulta legal',
+      title: 'Nueva consulta logística',
       updatedAt: 'Ahora',
       messages: [],
     }
@@ -422,7 +423,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function testSelectedVoice() {
     speakWithLipSync(
-      `Hola, soy Remi 915. Así suena mi nueva voz configurada para orientarte.`,
+      `Hola, soy Remi. Así suena mi voz configurada para orientarte en TransLogix Colombia.`,
       'happy'
     )
   }
@@ -464,7 +465,7 @@ export const useChatStore = defineStore('chat', () => {
     })
 
     avatarState.value = 'thinking'
-    liveSubtitle.value = 'Remi-915 consultando RAG + Ollama en tiempo real...'
+    liveSubtitle.value = 'Remi procesando tu consulta logística...'
     const startMs = performance.now()
 
     const botMsg: ChatMessage = {
@@ -543,10 +544,23 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (!reactiveBotMsg.content.trim()) {
-      reactiveBotMsg.content = 'No fue posible conectar con el servidor backend en http://localhost:8000. Por favor verifica que el backend esté ejecutándose.'
-      reactiveBotMsg.emotion = 'serio'
-      reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
-      speakWithLipSync(reactiveBotMsg.content, 'serio')
+      // Motor Autónomo TransLogix Colombia (Sin requerir backend)
+      const localResp = generateTranslogixResponse(content)
+      reactiveBotMsg.sources = localResp.sources ?? []
+      reactiveBotMsg.emotion = localResp.emotion
+      reactiveBotMsg.responseTimeMs = Math.max(120, Math.round(performance.now() - startMs))
+      reactiveBotMsg.content = localResp.content
+      liveSubtitle.value = localResp.content
+
+      statsStore.logQuery({
+        question: content,
+        responseMs: reactiveBotMsg.responseTimeMs,
+        origin: 'local',
+        mode,
+        laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+      })
+
+      speakWithLipSync(reactiveBotMsg.content, localResp.emotion)
     }
   }
 

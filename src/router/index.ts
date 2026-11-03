@@ -12,8 +12,9 @@ const router = createRouter({
       component: ChatView,
     },
     {
-      path: '/lawyers',
-      name: 'lawyers',
+      path: '/servicios',
+      alias: '/lawyers',
+      name: 'servicios',
       component: LawyersView,
     },
     {

@@ -1,251 +1,309 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { CheckCircle2, Sparkles, X } from 'lucide-vue-next'
-import { useSessionStore, CITIES } from '@/stores/session'
-import { useLawyersStore } from '@/stores/lawyers'
+import {
+  Truck,
+  CheckCircle2,
+  X,
+  Package,
+  Calculator,
+  ArrowRight,
+  ShieldCheck,
+  Clock,
+  Sparkles,
+} from 'lucide-vue-next'
+import { useSessionStore } from '@/stores/session'
+import { useTranslogixStore, MUNICIPALITIES, TRANSLOGIX_SERVICES } from '@/stores/translogix'
 
 const router = useRouter()
 const sessionStore = useSessionStore()
-const lawyersStore = useLawyersStore()
+const translogixStore = useTranslogixStore()
 
-// Estado formulario: Registro de Servicio (Abogado)
-const lawyerForm = ref({
-  fullName: '',
-  email: '',
-  whatsapp: '+57',
-  phone: '',
-  cityId: CITIES[0]!.id,
-  specialtyCode: 'LABORAL',
-  professionalCard: '',
-  university: '',
-  yearsExperience: 3,
-  modality: 'HIBRIDO' as 'PRESENCIAL' | 'VIRTUAL' | 'HIBRIDO',
-  headline: '',
-  bio: '',
-  serviceTitle: '',
-  serviceDescription: '',
-  priceFrom: 100000,
-  priceTo: 350000,
-  officeAddress: '',
-  schedule: 'Lun - Vie: 8:00 a.m. - 6:00 p.m.',
-  consent: true,
+const dispatchForm = ref({
+  senderName: '',
+  contactPhone: '+57 ',
+  serviceCode: 'ULTIMA_MILLA',
+  originCity: 'Bogotá D.C.',
+  destCity: 'Medellín',
+  weightKg: 5,
+  lengthCm: 30,
+  widthCm: 25,
+  heightCm: 20,
+  declaredValueCop: 250000,
+  isColdChain: false,
+  isDangerousCargo: false,
 })
-const lawyerError = ref('')
 
-async function handleLawyerRegister() {
-  lawyerError.value = ''
-  const f = lawyerForm.value
-  if (!f.fullName.trim() || !f.email.includes('@') || !f.professionalCard.trim() || !f.serviceTitle.trim()) {
-    lawyerError.value = 'Por favor completa tu nombre, correo, tarjeta profesional y el oficio/servicio que ofreces.'
-    return
-  }
-  if (!f.consent) {
-    lawyerError.value = 'Debes aceptar la autorización de publicación de datos profesionales.'
-    return
-  }
+const generatedGuideNumber = ref<string | null>(null)
+const formError = ref('')
 
-
-  await lawyersStore.registerLawyerService({
-    fullName: f.fullName,
-    headline: f.headline || `Especialista en ${f.specialtyCode} · ${f.yearsExperience} años de experiencia`,
-    bio: f.bio || `Abogado(a) egresado(a) de ${f.university || 'Universidad acreditada'}.`,
-    cityId: f.cityId,
-    specialtyCode: f.specialtyCode,
-    professionalCard: f.professionalCard,
-    university: f.university || 'Universidad de Colombia',
-    yearsExperience: Number(f.yearsExperience) || 1,
-    modality: f.modality,
-    serviceTitle: f.serviceTitle,
-    serviceDescription: f.serviceDescription || f.serviceTitle,
-    priceFrom: Number(f.priceFrom) || 80000,
-    priceTo: Number(f.priceTo) || 250000,
-    whatsapp: f.whatsapp,
-    phone: f.phone || f.whatsapp,
-    email: f.email,
-    officeAddress: f.officeAddress || 'Atención virtual y presencial con cita previa',
-    schedule: f.schedule,
+const quote = computed(() => {
+  return translogixStore.calculateQuote({
+    originCity: dispatchForm.value.originCity,
+    destCity: dispatchForm.value.destCity,
+    weightKg: Number(dispatchForm.value.weightKg) || 1,
+    lengthCm: Number(dispatchForm.value.lengthCm) || 10,
+    widthCm: Number(dispatchForm.value.widthCm) || 10,
+    heightCm: Number(dispatchForm.value.heightCm) || 10,
+    declaredValueCop: Number(dispatchForm.value.declaredValueCop) || 50000,
+    isColdChain: dispatchForm.value.isColdChain,
+    isDangerousCargo: dispatchForm.value.isDangerousCargo,
   })
+})
 
+function formatCurrency(val: number): string {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(val)
+}
+
+function handleGenerateGuide() {
+  formError.value = ''
+  if (!dispatchForm.value.senderName.trim()) {
+    formError.value = 'Por favor ingresa el nombre de la empresa o remitente.'
+    return
+  }
+  const randomSuffix = Math.floor(100000 + Math.random() * 900000)
+  generatedGuideNumber.value = `TLX-2026-CO-${randomSuffix}`
+}
+
+function handleClose() {
   sessionStore.showEntryModal = false
-  router.push('/lawyers')
+  generatedGuideNumber.value = null
+}
+
+function handleGoToServices() {
+  handleClose()
+  router.push('/servicios')
 }
 </script>
 
 <template>
   <div
     v-if="sessionStore.showEntryModal"
-    class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+    class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
   >
     <div class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto">
-      <!-- Encabezado y Pestañas Centrales -->
-      <div class="p-6 border-b border-slate-800 bg-slate-900/60 relative">
+      <!-- Encabezado del Modal -->
+      <div class="p-5 sm:p-6 border-b border-slate-800 bg-slate-900/60 relative">
         <button
-          @click="sessionStore.showEntryModal = false"
+          @click="handleClose"
           class="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
         >
           <X class="w-5 h-5" />
         </button>
 
         <div class="flex items-center gap-2 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-1">
-          <Sparkles class="w-4 h-4" />
-          <span>Plataforma Jurídica Inteligente · Colombia</span>
+          <img src="/logo.png" alt="TransLogix Logo" class="w-4 h-4 object-contain inline" />
+          <span>TransLogix Colombia · Solicitud de Despacho</span>
         </div>
-        <h2 class="text-xl font-bold text-white">Bienvenido a Remi-915</h2>
-        <p class="text-xs text-slate-400 mt-1">
-          Si eres abogado(a), publica tus servicios para que aparezcas en la sección Lawyers.
+        <h2 class="text-xl font-bold text-white">Cotizador Oficial y Generación de Guía</h2>
+        <p class="text-xs text-slate-400 mt-0.5">
+          Calcula el flete volumétrico oficial (factor 4000) y genera tu orden de transporte nacional.
         </p>
-
       </div>
 
-      <!-- CONTENIDO PESTAÑA 2: REGISTRO DE SERVICIO (ABOGADOS) -->
-      <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-        <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-1">
-          <p class="font-bold text-amber-300 flex items-center gap-2">
-            <CheckCircle2 class="w-4 h-4" />
-            ¿Para qué sirve esta pestaña de Registro de servicio?
-          </p>
-          <p class="text-slate-300 leading-relaxed">
-            Esta sección es nuestra <strong>bolsa de servicios y reclutamiento de abogados</strong> (estilo LinkedIn). Si eres abogado(a), registra aquí tus datos personales, especialidad y los oficios o servicios que prestas. Al guardar, <strong>tu perfil aparecerá inmediatamente en la sección "Lawyers" de la barra lateral</strong> con botones directos a tu WhatsApp, teléfono y correo para que los usuarios te contacten.
-          </p>
+      <!-- Pantalla de Éxito al Generar Guía -->
+      <div v-if="generatedGuideNumber" class="p-6 space-y-4 text-center">
+        <div class="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
+          <CheckCircle2 class="w-8 h-8" />
         </div>
 
-        <div v-if="lawyerError" class="p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-xs text-red-300">
-          {{ lawyerError }}
+        <div>
+          <h3 class="text-lg font-bold text-white">¡Despacho Registrado con Éxito!</h3>
+          <p class="text-xs text-slate-400 mt-1">Tu orden ha sido registrada en el sistema logístico de TransLogix Colombia.</p>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-left space-y-2 text-xs">
+          <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+            <span class="text-slate-400">Número de Guía Oficial:</span>
+            <span class="font-mono font-bold text-sm text-blue-400">{{ generatedGuideNumber }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Ruta:</span>
+            <span class="text-white font-medium">{{ dispatchForm.originCity }} → {{ dispatchForm.destCity }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Peso Facturable:</span>
+            <span class="text-white font-medium">{{ quote.billableWeightKg }} kg (Volumétrico: {{ quote.volWeightKg }} kg)</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Tiempo de Entrega (SLA):</span>
+            <span class="text-emerald-400 font-bold">{{ quote.estimatedHours }} horas</span>
+          </div>
+          <div class="flex justify-between pt-2 border-t border-slate-800 text-sm">
+            <span class="text-white font-bold">Flete Total Liquidado:</span>
+            <span class="text-blue-400 font-extrabold">{{ formatCurrency(quote.totalFreightCop) }}</span>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button
+            @click="handleClose"
+            class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs cursor-pointer"
+          >
+            Cerrar
+          </button>
+          <button
+            @click="handleGoToServices"
+            class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow-lg shadow-blue-600/30"
+          >
+            Ver Portal de Servicios
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario de Cotización y Despacho -->
+      <div v-else class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div v-if="formError" class="p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-xs text-red-300">
+          {{ formError }}
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs text-slate-300 mb-1">Nombre completo del Abogado(a) *</label>
+            <label class="block text-xs text-slate-300 mb-1">Nombre Remitente / Empresa *</label>
             <input
-              v-model="lawyerForm.fullName"
+              v-model="dispatchForm.senderName"
               type="text"
-              placeholder="Ej. Dr. Carlos Andrés Ruiz"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
+              placeholder="Ej. Distribuciones Andinas S.A.S."
+              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
             />
           </div>
+
           <div>
-            <label class="block text-xs text-slate-300 mb-1">Tarjeta Profesional (CSJ) *</label>
+            <label class="block text-xs text-slate-300 mb-1">Teléfono o WhatsApp de Contacto</label>
             <input
-              v-model="lawyerForm.professionalCard"
+              v-model="dispatchForm.contactPhone"
               type="text"
-              placeholder="Ej. TP-349120-CSJ"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
+              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
             />
           </div>
+
           <div>
-            <label class="block text-xs text-slate-300 mb-1">Ciudad donde ejerces *</label>
+            <label class="block text-xs text-slate-300 mb-1">Ciudad de Origen</label>
             <select
-              v-model="lawyerForm.cityId"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
+              v-model="dispatchForm.originCity"
+              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none"
             >
-              <option v-for="c in CITIES" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs text-slate-300 mb-1">Especialidad Principal *</label>
-            <select
-              v-model="lawyerForm.specialtyCode"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-            >
-              <option v-for="s in lawyersStore.specialties" :key="s.code" :value="s.code">
-                {{ s.name }}
+              <option v-for="m in MUNICIPALITIES" :key="m.daneCode" :value="m.municipality">
+                {{ m.municipality }} ({{ m.department }})
               </option>
             </select>
           </div>
+
           <div>
-            <label class="block text-xs text-slate-300 mb-1">WhatsApp de contacto *</label>
-            <input
-              v-model="lawyerForm.whatsapp"
-              type="text"
-              placeholder="+573101234567"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-            />
+            <label class="block text-xs text-slate-300 mb-1">Ciudad de Destino</label>
+            <select
+              v-model="dispatchForm.destCity"
+              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none"
+            >
+              <option v-for="m in MUNICIPALITIES" :key="m.daneCode" :value="m.municipality">
+                {{ m.municipality }} ({{ m.department }})
+              </option>
+            </select>
           </div>
+
           <div>
-            <label class="block text-xs text-slate-300 mb-1">Correo profesional *</label>
-            <input
-              v-model="lawyerForm.email"
-              type="email"
-              placeholder="abogado@firma.co"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-            />
+            <label class="block text-xs text-slate-300 mb-1">Línea de Servicio</label>
+            <select
+              v-model="dispatchForm.serviceCode"
+              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none"
+            >
+              <option v-for="s in TRANSLOGIX_SERVICES" :key="s.code" :value="s.code">
+                {{ s.shortTitle }} ({{ s.badge }})
+              </option>
+            </select>
           </div>
+
           <div>
-            <label class="block text-xs text-slate-300 mb-1">Universidad de egreso</label>
+            <label class="block text-xs text-slate-300 mb-1">Valor Declarado (COP)</label>
             <input
-              v-model="lawyerForm.university"
-              type="text"
-              placeholder="Ej. Universidad Externado / Nacional"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-            />
-          </div>
-          <div>
-            <label class="block text-xs text-slate-300 mb-1">Años de experiencia</label>
-            <input
-              v-model="lawyerForm.yearsExperience"
+              v-model.number="dispatchForm.declaredValueCop"
               type="number"
-              min="0"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
+              min="10000"
+              step="50000"
+              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white focus:outline-none"
             />
           </div>
         </div>
 
+        <!-- Dimensiones y Peso -->
         <div>
           <label class="block text-xs text-slate-300 mb-1">
-            Título del Oficio o Servicio Jurídico que ofreces (como publicación de empleo) *
+            Peso y Dimensiones (Largo × Ancho × Alto) / 4.000
           </label>
-          <input
-            v-model="lawyerForm.serviceTitle"
-            type="text"
-            placeholder="Ej. Representación en Demandas Laborales, Liquidaciones y Pensiones"
-            class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-          />
+          <div class="grid grid-cols-4 gap-2">
+            <div>
+              <span class="text-[10px] text-slate-400 block">Peso Real (kg)</span>
+              <input
+                v-model.number="dispatchForm.weightKg"
+                type="number"
+                min="0.5"
+                step="0.5"
+                class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2 py-1.5 text-xs text-white text-center"
+              />
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Largo (cm)</span>
+              <input
+                v-model.number="dispatchForm.lengthCm"
+                type="number"
+                min="1"
+                class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2 py-1.5 text-xs text-white text-center"
+              />
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Ancho (cm)</span>
+              <input
+                v-model.number="dispatchForm.widthCm"
+                type="number"
+                min="1"
+                class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2 py-1.5 text-xs text-white text-center"
+              />
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Alto (cm)</span>
+              <input
+                v-model.number="dispatchForm.heightCm"
+                type="number"
+                min="1"
+                class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2 py-1.5 text-xs text-white text-center"
+              />
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label class="block text-xs text-slate-300 mb-1">
-            Descripción detallada de tus servicios e información personal *
+        <!-- Checkboxes Especiales -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-950 border border-slate-800 cursor-pointer">
+            <input v-model="dispatchForm.isColdChain" type="checkbox" class="rounded border-slate-700" />
+            <span class="text-slate-300">Cadena de Frío (-20°C a 8°C) +25%</span>
           </label>
-          <textarea
-            v-model="lawyerForm.serviceDescription"
-            rows="3"
-            placeholder="Describe qué incluye tu asesoría, experiencia personal, horarios y cómo ayudas al cliente..."
-            class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-          ></textarea>
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-950 border border-slate-800 cursor-pointer">
+            <input v-model="dispatchForm.isDangerousCargo" type="checkbox" class="rounded border-slate-700" />
+            <span class="text-slate-300">Carga Peligrosa Regulada ONU</span>
+          </label>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <!-- Tarjeta de Resumen en Vivo -->
+        <div class="bg-blue-600/10 border border-blue-500/30 rounded-xl p-3 text-xs flex items-center justify-between">
           <div>
-            <label class="block text-xs text-slate-300 mb-1">Tarifa base desde (COP)</label>
-            <input
-              v-model="lawyerForm.priceFrom"
-              type="number"
-              step="10000"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-            />
+            <span class="text-[11px] text-slate-400">Total a Liquidar (SLA: {{ quote.estimatedHours }}h):</span>
+            <p class="text-lg font-bold text-white">{{ formatCurrency(quote.totalFreightCop) }}</p>
           </div>
-          <div>
-            <label class="block text-xs text-slate-300 mb-1">Dirección de oficina / Modalidad</label>
-            <input
-              v-model="lawyerForm.officeAddress"
-              type="text"
-              placeholder="Ej. Cra 7 # 71-21 Bogotá / Virtual"
-              class="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white"
-            />
-          </div>
+          <span class="text-[11px] px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-mono">
+            Peso facturado: {{ quote.billableWeightKg }} kg
+          </span>
         </div>
-
-        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-          <input v-model="lawyerForm.consent" type="checkbox" class="rounded border-slate-700" />
-          <span>Autorizo publicar mis datos profesionales de contacto en la sección Lawyers (Ley 1581 de 2012).</span>
-        </label>
 
         <button
-          @click="handleLawyerRegister"
-          class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 transition cursor-pointer"
+          @click="handleGenerateGuide"
+          class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition cursor-pointer flex items-center justify-center gap-2"
         >
-          Publicar mi Servicio y Agregarme a Lawyers
+          <span>Confirmar y Generar Número de Guía</span>
+          <ArrowRight class="w-4 h-4" />
         </button>
       </div>
     </div>

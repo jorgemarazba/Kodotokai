@@ -44,7 +44,7 @@ function confirmReset() {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto p-6 bg-slate-950">
+  <div class="h-full overflow-y-auto p-3.5 sm:p-6 bg-slate-950">
     <div class="max-w-5xl mx-auto space-y-6">
       <!-- Encabezado -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
@@ -94,7 +94,7 @@ function confirmReset() {
           <p class="text-[11px] text-slate-500">👍 {{ stats.feedbackUp }} · 👎 {{ stats.feedbackDown }}</p>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="flex items-center gap-2 text-xs text-slate-400"><Phone class="w-3.5 h-3.5 text-emerald-400" />Contactos a abogados</div>
+          <div class="flex items-center gap-2 text-xs text-slate-400"><Phone class="w-3.5 h-3.5 text-emerald-400" />Órdenes y cotizaciones</div>
           <p class="text-2xl font-bold text-white mt-1">{{ stats.totalContacts }}</p>
         </div>
       </div>
@@ -148,8 +148,8 @@ function confirmReset() {
 
         <!-- Leyes citadas -->
         <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-sm font-semibold text-white mb-4">Leyes más citadas por el asistente</h3>
-          <p v-if="!stats.topLaws.length" class="text-xs text-slate-500">Aún no se han citado leyes.</p>
+          <h3 class="text-sm font-semibold text-white mb-4">Normas y fuentes citadas por Remi</h3>
+          <p v-if="!stats.topLaws.length" class="text-xs text-slate-500">Aún no se han citado fuentes técnicas.</p>
           <div v-for="t in stats.topLaws" :key="t.label" class="mb-2.5">
             <div class="flex justify-between text-xs text-slate-300 mb-1"><span class="truncate pr-2">{{ t.label }}</span><span>{{ t.count }}</span></div>
             <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-blue-500" :style="{ width: barPct(t.count, maxLaw) + '%' }"></div></div>
@@ -186,7 +186,7 @@ function confirmReset() {
 
         <!-- Contactos por canal -->
         <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-sm font-semibold text-white mb-4">Contactos a abogados por canal</h3>
+          <h3 class="text-sm font-semibold text-white mb-4">Órdenes y cotizaciones por canal</h3>
           <div v-for="c in stats.contactsByChannel" :key="c.label" class="mb-2.5">
             <div class="flex justify-between text-xs text-slate-300 mb-1"><span>{{ c.label }}</span><span>{{ c.count }}</span></div>
             <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-amber-500" :style="{ width: c.count ? barPct(c.count, maxContact) + '%' : '0%' }"></div></div>
