@@ -80,16 +80,74 @@ function clearRecordingTimer() {
   }
 }
 
+let recordedSamples: Float32Array[] = []
+let processorNode: ScriptProcessorNode | null = null
+
+function encodeWAV(sampleChunks: Float32Array[], sampleRate: number): Blob {
+  let totalLength = 0
+  for (const c of sampleChunks) {
+    totalLength += c.length
+  }
+  const merged = new Float32Array(totalLength)
+  let offset = 0
+  for (const c of sampleChunks) {
+    merged.set(c, offset)
+    offset += c.length
+  }
+
+  const buffer = new ArrayBuffer(44 + merged.length * 2)
+  const view = new DataView(buffer)
+  const writeString = (o: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(o + i, str.charCodeAt(i))
+    }
+  }
+
+  writeString(0, 'RIFF')
+  view.setUint32(4, 36 + merged.length * 2, true)
+  writeString(8, 'WAVE')
+  writeString(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  writeString(36, 'data')
+  view.setUint32(40, merged.length * 2, true)
+
+  let pcmOffset = 44
+  for (let i = 0; i < merged.length; i++) {
+    const s = Math.max(-1, Math.min(1, merged[i]!))
+    view.setInt16(pcmOffset, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+    pcmOffset += 2
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' })
+}
+
 function setupAudioAnalyser(stream: MediaStream) {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
     if (!AudioCtx) return
-    audioContext = new AudioCtx()
+    audioContext = new AudioCtx({ sampleRate: 16000 })
     const source = audioContext.createMediaStreamSource(stream)
     analyser = audioContext.createAnalyser()
     analyser.fftSize = 64
     analyser.smoothingTimeConstant = 0.6
     source.connect(analyser)
+
+    // ScriptProcessor para recolectar samples PCM en memoria
+    processorNode = audioContext.createScriptProcessor(4096, 1, 1)
+    recordedSamples = []
+    processorNode.onaudioprocess = (e) => {
+      if (!isRecording.value) return
+      const inputData = e.inputBuffer.getChannelData(0)
+      recordedSamples.push(new Float32Array(inputData))
+    }
+    source.connect(processorNode)
+    processorNode.connect(audioContext.destination)
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount)
 
@@ -126,6 +184,14 @@ function stopAudioAnalyser() {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId)
     animationFrameId = null
+  }
+  if (processorNode) {
+    try {
+      processorNode.disconnect()
+    } catch {
+      // ignorar
+    }
+    processorNode = null
   }
   if (mediaStream) {
     mediaStream.getTracks().forEach((track) => track.stop())
@@ -280,11 +346,14 @@ async function startVoiceRecording() {
   }
 }
 
-function stopVoiceRecording(shouldSend = true) {
+async function stopVoiceRecording(shouldSend = true) {
   manualStop = true
   clearSilenceTimer()
   clearRecordingTimer()
   isRecording.value = false
+
+  const currentSampleRate = audioContext?.sampleRate || 16000
+  const localChunks = [...recordedSamples]
   stopAudioAnalyser()
 
   if (recognition) {
@@ -295,13 +364,35 @@ function stopVoiceRecording(shouldSend = true) {
     }
   }
 
-  const text = inputMessage.value.trim()
+  let text = inputMessage.value.trim()
+
+  // Si el navegador no transcribió texto (ej: Brave), transcribimos el audio capturado con el backend
+  if (!text && shouldSend && (hasSpeechActivity.value || localChunks.length > 8)) {
+    chatStore.avatarState = 'thinking'
+    chatStore.liveSubtitle = '🎙️ Transcribiendo tu voz con precisión...'
+    try {
+      const wavBlob = encodeWAV(localChunks, currentSampleRate)
+      const formData = new FormData()
+      formData.append('file', wavBlob, 'recording.wav')
+
+      const res = await fetch('/api/v1/transcribe', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.text) {
+          text = data.text.trim()
+          inputMessage.value = text
+        }
+      }
+    } catch (err) {
+      console.warn('Error en transcripción backend:', err)
+    }
+  }
+
   if (shouldSend && text) {
-    handleSend('voice')
-  } else if (shouldSend && hasSpeechActivity.value) {
-    // Si habló por micrófono pero la nube de Google estuvo bloqueada y no dictó texto:
-    // asignamos una consulta relevante y enviamos
-    inputMessage.value = quickVoicePrompts[0]!
     handleSend('voice')
   } else {
     chatStore.avatarState = 'idle'
