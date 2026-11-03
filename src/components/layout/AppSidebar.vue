@@ -4,11 +4,8 @@ import { useRouter, useRoute } from 'vue-router'
 import {
   Truck,
   PackageCheck,
-  Home,
   X,
-  RotateCcw,
   Briefcase,
-  BarChart3,
   UserPlus,
   Settings,
   ChevronDown,
@@ -155,64 +152,70 @@ function handleEdit() {
       </button>
     </div>
 
-    <!-- Navegación Principal (Orden exacto: Inicio -> Lawyers -> Estadísticas) -->
-    <div class="p-3 space-y-1.5">
+    <!-- Navegación Principal con los nuevos iconos personalizados de TransLogix -->
+    <div class="p-3 space-y-2">
       <!-- 1. Inicio -->
       <button
         @click="handleGoHome"
-        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
+        class="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/'
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-            : 'text-slate-300 hover:bg-slate-800'
+            ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
+            : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <Home class="w-4 h-4" />
+        <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
+          <img src="/icons/nav-inicio.png" alt="Inicio" class="w-full h-full object-contain" />
+        </div>
         <span>Inicio</span>
       </button>
 
-      <!-- 2. Nueva instancia (Debajo de Inicio) -->
+      <!-- 2. Nueva instancia -->
       <button
         @click="handleNewInstance"
-        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-[#0f2e26]/70 hover:text-white group"
+        class="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white group"
         title="Reinicia la sesión con un usuario limpio para volver a calificar"
       >
-        <RotateCcw class="w-4 h-4 text-emerald-400 group-hover:rotate-[-45deg] transition-transform" />
+        <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
+          <img src="/icons/nav-nueva-instancia.png" alt="Nueva instancia" class="w-full h-full object-contain" />
+        </div>
         <span>Nueva instancia</span>
       </button>
 
-      <!-- 2. Servicios & Transporte -->
+      <!-- 3. Transporte y Servicio -->
       <button
         @click="handleNavigate('/servicios')"
-        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/servicios' || route.path === '/lawyers'
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-            : 'text-slate-300 hover:bg-slate-800'
+            ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
+            : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <span class="flex items-center gap-2.5 min-w-0">
-          <div class="w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 p-1 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/20">
-            <img src="/logo.png" alt="Servicios y Transporte" class="w-full h-full object-contain filter drop-shadow scale-110" />
+        <span class="flex items-center gap-3 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
+            <img src="/icons/nav-transporte.png" alt="Transporte y Servicio" class="w-full h-full object-contain scale-105" />
           </div>
           <span class="truncate">Servicios & Transporte</span>
         </span>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-blue-300 border border-slate-700">
+        <span class="text-xs px-2 py-0.5 rounded-full bg-[#051813] text-emerald-300 border border-[#153e34]">
           5
         </span>
       </button>
 
-      <!-- 3. Estadísticas -->
+      <!-- 4. Estadísticas -->
       <button
         @click="handleNavigate('/stats')"
-        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
+        class="w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/stats'
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-            : 'text-slate-300 hover:bg-slate-800'
+            ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
+            : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <BarChart3 class="w-4 h-4" />
+        <div class="w-8 h-8 rounded-lg bg-white/95 p-1 flex items-center justify-center shrink-0 shadow-sm border border-white/20 group-hover:scale-105 transition-transform">
+          <img src="/icons/nav-estadisticas.png" alt="Estadísticas" class="w-full h-full object-contain" />
+        </div>
         <span>Estadísticas</span>
       </button>
     </div>

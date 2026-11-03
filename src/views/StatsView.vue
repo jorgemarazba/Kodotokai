@@ -50,7 +50,9 @@ function confirmReset() {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <div>
           <div class="flex items-center gap-2 text-blue-400 text-xs font-semibold uppercase">
-            <BarChart3 class="w-4 h-4" />
+            <div class="w-5 h-5 rounded bg-white/95 p-0.5 flex items-center justify-center shrink-0 shadow-sm border border-white/20">
+              <img src="/icons/nav-estadisticas.png" alt="Estadísticas" class="w-full h-full object-contain" />
+            </div>
             <span>Panel de métricas</span>
           </div>
           <h2 class="text-xl font-bold text-white mt-1">Estadísticas</h2>
