@@ -1,9 +1,10 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { Menu, Bot } from 'lucide-vue-next'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import EntryTabsModal from '@/components/entry/EntryTabsModal.vue'
+import PqrsdModal from '@/components/pqrsd/PqrsdModal.vue'
 import { useLawyersStore } from '@/stores/lawyers'
 import { useSessionStore } from '@/stores/session'
 
@@ -60,5 +61,8 @@ onMounted(async () => {
 
     <!-- Modal de Cotización y Despacho -->
     <EntryTabsModal />
+
+    <!-- Modal Canónico de PQRSD -->
+    <PqrsdModal />
   </div>
 </template>

@@ -105,7 +105,7 @@ const DEFAULT_VOICE_PROFILES: VoiceOption[] = [
   },
   {
     id: 'neural-alvaro-es',
-    label: '🇪🇸 Álvaro Neural · Abogado Senior Grave (IA)',
+    label: '🇨🇴 Remi Neural · Asesor Logístico Senior (IA)',
     neuralVoice: 'es-ES-AlvaroNeural',
     neuralRate: '+0%',
     neuralPitch: '-3Hz',
@@ -150,10 +150,16 @@ export const useChatStore = defineStore('chat', () => {
   let welcomeDone = false
   const neuralTtsAvailable = ref<boolean | null>(null)
 
+  const isBackendEnabled = import.meta.env.VITE_ENABLE_BACKEND === 'true'
+
   async function checkNeuralTtsStatus(): Promise<boolean> {
-    if (neuralTtsAvailable.value === true) return true
+    if (!isBackendEnabled) return false
+    if (neuralTtsAvailable.value !== null) return neuralTtsAvailable.value
     try {
-      const res = await fetch('/health')
+      const controller = new AbortController()
+      const to = setTimeout(() => controller.abort(), 4000)
+      const res = await fetch('/health', { signal: controller.signal })
+      clearTimeout(to)
       if (res.ok) {
         const data = await res.json()
         neuralTtsAvailable.value = data?.neural_tts === true
@@ -250,15 +256,95 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function startLipSyncAnimation() {
-    const visemePool: Array<'aa' | 'ee' | 'ih' | 'oh' | 'ou'> = ['aa', 'ee', 'ih', 'oh', 'ou']
+  function cleanTextForSpeech(text: string): string {
+    return text
+      .replace(/\[Source:[^\]]+\]/g, '')
+      .replace(/\[\d+\]/g, '')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[*_#`~>|]/g, ' ')
+      .replace(/\s*-\s+/g, ', ')
+      .replace(/×/g, ' por ')
+      .replace(/\//g, ' dividido entre ')
+      .replace(/\+/g, ' más ')
+      .replace(/%/g, ' por ciento ')
+      .replace(/\$/g, ' pesos ')
+      .replace(/[()]/g, ', ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  function charToViseme(ch: string): 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | 'sil' {
+    const c = ch.toLowerCase()
+    if (c === 'a' || c === 'á') return 'aa'
+    if (c === 'e' || c === 'é') return 'ee'
+    if (c === 'i' || c === 'í' || c === 'y') return 'ih'
+    if (c === 'o' || c === 'ó') return 'oh'
+    if (c === 'u' || c === 'ú' || c === 'ü' || c === 'w') return 'ou'
+    if (c === 'm' || c === 'p' || c === 'b' || c === 'v' || c === 'f') return 'sil'
+    if (',.;:?!—-()'.includes(c)) return 'sil'
+    return 'ee'
+  }
+
+  function buildSyllableVisemes(text: string): Array<{ viseme: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | 'sil'; charIndex: number }> {
+    const list: Array<{ viseme: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | 'sil'; charIndex: number }> = []
+    const clean = text.toLowerCase()
+    let i = 0
+    while (i < clean.length) {
+      const ch = clean[i]!
+      if (' \t\n,.;:?!-'.includes(ch)) {
+        list.push({ viseme: 'sil', charIndex: i })
+        i++
+        continue
+      }
+      if ('aeiouáéíóúü'.includes(ch)) {
+        let v: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' = 'aa'
+        if (ch === 'a' || ch === 'á') v = 'aa'
+        else if (ch === 'e' || ch === 'é') v = 'ee'
+        else if (ch === 'i' || ch === 'í') v = 'ih'
+        else if (ch === 'o' || ch === 'ó') v = 'oh'
+        else if (ch === 'u' || ch === 'ú' || ch === 'ü') v = 'ou'
+        list.push({ viseme: v, charIndex: i })
+        // Micro cierre consonántico natural entre sílabas
+        list.push({ viseme: 'sil', charIndex: i })
+        i++
+        continue
+      }
+      if ('mpbv'.includes(ch)) {
+        list.push({ viseme: 'sil', charIndex: i })
+      } else {
+        list.push({ viseme: 'ih', charIndex: i })
+      }
+      i++
+    }
+    return list
+  }
+
+  let fallbackStopTimer: ReturnType<typeof setTimeout> | null = null
+  let activeUtteranceRef: SpeechSynthesisUtterance | null = null
+
+  function startLipSyncAnimation(spokenText = '') {
     if (visemeInterval) clearInterval(visemeInterval)
     avatarState.value = 'speaking'
 
+    const sequence = buildSyllableVisemes(spokenText)
+    if (sequence.length === 0) {
+      const fallbackPool: Array<'aa' | 'ee' | 'ih' | 'oh' | 'ou'> = ['aa', 'ee', 'ih', 'oh', 'ou']
+      let step = 0
+      visemeInterval = setInterval(() => {
+        step++
+        currentViseme.value = step % 4 === 0 ? 'sil' : fallbackPool[step % fallbackPool.length]!
+      }, 95)
+      return
+    }
+
+    let seqIdx = 0
     visemeInterval = setInterval(() => {
-      const randomViseme = visemePool[Math.floor(Math.random() * visemePool.length)]!
-      currentViseme.value = Math.random() > 0.2 ? randomViseme : 'sil'
-    }, 105)
+      const item = sequence[seqIdx % sequence.length]
+      if (item) {
+        currentViseme.value = item.viseme
+      }
+      seqIdx++
+    }, 110)
   }
 
   function pickBestSystemVoice(preferredName?: string): SpeechSynthesisVoice | undefined {
@@ -301,27 +387,27 @@ export const useChatStore = defineStore('chat', () => {
     text: string,
     emotion: 'neutral' | 'happy' | 'empatia' | 'serio' = 'empatia'
   ) {
-    const cleanText = text.replace(/\[Source:[^\]]+\]/g, '').replace(/\*\*/g, '').trim()
-    if (!cleanText) return
+    const speechClean = cleanTextForSpeech(text)
+    if (!speechClean) return
 
     stopSpeaking()
     speechStarted = false
     avatarEmotion.value = emotion
-    liveSubtitle.value = cleanText
-    avatarGesture.value = detectGestureFromText(cleanText)
+    liveSubtitle.value = speechClean
+    avatarGesture.value = detectGestureFromText(speechClean)
     gestureStartedAt.value = performance.now()
 
     const selectedOption =
       availableVoices.value.find((o) => o.id === selectedVoiceId.value) || DEFAULT_VOICE_PROFILES[0]!
 
-    // 1. Intentar primero la Voz Neuronal Masculina (/v1/tts con edge-tts) solo si /health confirma neural_tts: true
+    // 1. Intentar primero la Voz Neuronal Masculina (/v1/tts con edge-tts) si está disponible
     if (selectedOption.neuralVoice && (await checkNeuralTtsStatus())) {
       try {
         const res = await fetch('/v1/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: cleanText,
+            text: speechClean,
             voice: selectedOption.neuralVoice,
             rate: selectedOption.neuralRate,
             pitch: pitchNumberToHz(voicePitch.value, selectedOption.neuralPitch),
@@ -336,7 +422,7 @@ export const useChatStore = defineStore('chat', () => {
 
           audio.onplay = () => {
             speechStarted = true
-            startLipSyncAnimation()
+            startLipSyncAnimation(speechClean)
           }
           audio.onended = () => {
             URL.revokeObjectURL(url)
@@ -351,16 +437,27 @@ export const useChatStore = defineStore('chat', () => {
           return
         }
       } catch {
-        // Si uvicorn no se ha reiniciado con edge-tts, usar respaldo inmediato de voz del navegador
+        // Fallback al sintetizador del sistema
       }
     }
 
-    // 2. Respaldo con Web Speech API del navegador
-    startLipSyncAnimation()
-    if ('speechSynthesis' in window) {
+    // 2. Respaldo inmediato y garantizado con Web Speech API
+    startLipSyncAnimation(speechClean)
+    const estimatedDurationMs = Math.min(18000, Math.max(2500, speechClean.split(/\s+/).length * 360))
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       loadSpanishVoices()
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(cleanText)
+      try {
+        window.speechSynthesis.resume()
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+          window.speechSynthesis.cancel()
+        }
+      } catch {
+        // ignorar
+      }
+
+      const utterance = new SpeechSynthesisUtterance(speechClean)
+      activeUtteranceRef = utterance
       const chosenVoice = pickBestSystemVoice(selectedOption.voiceName)
 
       if (chosenVoice) {
@@ -375,21 +472,67 @@ export const useChatStore = defineStore('chat', () => {
 
       utterance.onstart = () => {
         speechStarted = true
+        avatarState.value = 'speaking'
       }
+
+      utterance.onboundary = (event: SpeechSynthesisEvent) => {
+        if (typeof event.charIndex === 'number' && event.charIndex >= 0) {
+          const currentSlice = speechClean.slice(event.charIndex, event.charIndex + 4)
+          const vowelMatch = currentSlice.match(/[aeiouáéíóú]/i)
+          if (vowelMatch && vowelMatch[0]) {
+            currentViseme.value = charToViseme(vowelMatch[0])
+          }
+        }
+      }
+
       utterance.onend = () => {
-        stopSpeaking()
+        if (activeUtteranceRef === utterance) {
+          stopSpeaking()
+        }
       }
-      utterance.onerror = () => {
-        stopSpeaking()
+
+      utterance.onerror = (ev: SpeechSynthesisErrorEvent) => {
+        if (ev.error === 'not-allowed' || ev.error === 'synthesis-failed' || ev.error === 'audio-busy') {
+          if (fallbackStopTimer) clearTimeout(fallbackStopTimer)
+          fallbackStopTimer = setTimeout(() => {
+            if (activeUtteranceRef === utterance) stopSpeaking()
+          }, estimatedDurationMs)
+          return
+        }
+        if (activeUtteranceRef === utterance && speechStarted) {
+          stopSpeaking()
+        }
       }
-      window.speechSynthesis.speak(utterance)
+
+      // Respaldo de seguridad
+      if (fallbackStopTimer) clearTimeout(fallbackStopTimer)
+      fallbackStopTimer = setTimeout(() => {
+        if (activeUtteranceRef === utterance && !window.speechSynthesis.speaking) {
+          stopSpeaking()
+        }
+      }, estimatedDurationMs + 1000)
+
+      // Pequeño retardo de 35ms para evitar cancelación síncrona en Chromium
+      setTimeout(() => {
+        try {
+          window.speechSynthesis.resume()
+          window.speechSynthesis.speak(utterance)
+        } catch {
+          // continuar con animación
+        }
+      }, 35)
     } else {
-      const durationMs = Math.min(12000, Math.max(2500, cleanText.split(' ').length * 320))
-      setTimeout(() => stopSpeaking(), durationMs)
+      if (fallbackStopTimer) clearTimeout(fallbackStopTimer)
+      fallbackStopTimer = setTimeout(() => stopSpeaking(), estimatedDurationMs)
     }
   }
 
   function stopSpeaking() {
+    if (fallbackStopTimer) {
+      clearTimeout(fallbackStopTimer)
+      fallbackStopTimer = null
+    }
+    activeUtteranceRef = null
     if (currentAudio) {
       try {
         currentAudio.pause()
@@ -400,7 +543,13 @@ export const useChatStore = defineStore('chat', () => {
       currentAudio = null
     }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
+      try {
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+          window.speechSynthesis.cancel()
+        }
+      } catch {
+        // ignorar
+      }
     }
     if (visemeInterval) {
       clearInterval(visemeInterval)
@@ -431,6 +580,21 @@ export const useChatStore = defineStore('chat', () => {
   function normalizeRagSources(rawSources: unknown): LegalCitation[] {
     if (!Array.isArray(rawSources)) return []
     return rawSources.map((item, idx) => {
+      if (item && typeof item === 'object') {
+        const meta = (item as Record<string, unknown>).metadata as Record<string, unknown> | undefined || {}
+        const sourceFile = meta.source || (item as Record<string, unknown>).lawName || `Fuente RAG #${idx + 1}`
+        const cleanName = String(sourceFile).replace('.md', '').replace(/_/g, ' ')
+        const section =
+          meta.seccion && meta.seccion !== 'N/A'
+            ? `Sección: ${meta.seccion}`
+            : meta.categoria || (item as Record<string, unknown>).articleNumber || 'Documento local'
+        const excerpt = (item as Record<string, unknown>).content || (item as Record<string, unknown>).excerpt || ''
+        return {
+          lawName: cleanName.toUpperCase(),
+          articleNumber: String(section),
+          excerpt: String(excerpt),
+        }
+      }
       if (typeof item === 'string') {
         const cleanName = item.replace('.md', '').replace(/_/g, ' ')
         return {
@@ -479,68 +643,71 @@ export const useChatStore = defineStore('chat', () => {
     conv.messages.push(botMsg)
     const reactiveBotMsg = conv.messages[conv.messages.length - 1]!
 
-    try {
-      const response = await fetch('/v1/chat/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: content.trim(),
-        }),
-      })
+    // 0. Detección en vivo de consulta de expediente PQRSD
+    const radicadoMatch = content.match(/\bPQRSD-[0-9]{4}-[0-9]{6}\b/i)
+    if (radicadoMatch && radicadoMatch[0]) {
+      const radicado = radicadoMatch[0].toUpperCase()
+      try {
+        const resPqrs = await fetch(`/api/v1/pqrsd/${encodeURIComponent(radicado)}`)
+        if (resPqrs.ok) {
+          const caseData = await resPqrs.json()
+          const respText = `He consultado en tiempo real el expediente del radicado **${caseData.radicado}** en nuestra base oficial:\n\n• **Estado actual**: ${caseData.estado.toUpperCase()}\n• **Asunto**: ${caseData.asunto}\n• **Fecha de radicación**: ${new Date(caseData.fecha_radicacion).toLocaleDateString('es-CO')}\n• **Vencimiento oficial**: ${caseData.fecha_vencimiento} (${caseData.dias_restantes} días hábiles restantes)\n${caseData.respuesta ? `• **Respuesta oficial**: ${caseData.respuesta}` : '• **Trámite**: En curso por la dependencia competente.'}\n\nPuedes revisar la bitácora completa en la **Ventanilla PQRSD** del menú.`
 
-      if (response.ok && response.body) {
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-          const { value, done } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n\n')
-          buffer = lines.pop() || ''
-
-          for (const block of lines) {
-            const line = block.trim()
-            if (!line.startsWith('data:')) continue
-            const payload = line.replace(/^data:\s*/, '').trim()
-            if (payload === '[DONE]') break
-
-            try {
-              const parsed = JSON.parse(payload)
-              if (parsed.sources) {
-                reactiveBotMsg.sources = normalizeRagSources(parsed.sources)
-              }
-              if (parsed.delta) {
-                if (!reactiveBotMsg.responseTimeMs) {
-                  reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
-                }
-                reactiveBotMsg.content += parsed.delta
-                liveSubtitle.value = reactiveBotMsg.content
-              }
-            } catch {
-              // Ignorar fragmentos incompletos
-            }
-          }
-        }
-
-        if (reactiveBotMsg.content.trim()) {
-          statsStore.logQuery({
-            question: content,
-            responseMs: reactiveBotMsg.responseTimeMs ?? Math.round(performance.now() - startMs),
-            origin: 'backend',
-            mode,
-            laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
-          })
-          speakWithLipSync(reactiveBotMsg.content, 'empatia')
+          reactiveBotMsg.content = respText
+          reactiveBotMsg.emotion = 'empatia'
+          reactiveBotMsg.sources = [
+            {
+              lawName: 'Expediente PQRSD',
+              articleNumber: caseData.radicado,
+              excerpt: `Vencimiento legal: ${caseData.fecha_vencimiento} · Estado: ${caseData.estado}`,
+            },
+          ]
+          reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+          liveSubtitle.value = respText
+          speakWithLipSync(respText, 'empatia')
           return
         }
+      } catch {
+        // Continuar si falla la conexión
       }
-    } catch {
-      // Respaldo local
+    }
+
+    // 1. Consumo directo del backend FastAPI (/api/v1/ask) solo si está habilitado
+    if (isBackendEnabled) {
+      try {
+        const response = await fetch('/api/v1/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            question: content.trim(),
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data && data.answer) {
+            reactiveBotMsg.content = data.answer
+            reactiveBotMsg.sources = normalizeRagSources(data.sources)
+            reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+            liveSubtitle.value = reactiveBotMsg.content
+
+            statsStore.logQuery({
+              question: content,
+              responseMs: reactiveBotMsg.responseTimeMs,
+              origin: 'backend',
+              mode,
+              laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+            })
+
+            speakWithLipSync(reactiveBotMsg.content, 'empatia')
+            return
+          }
+        }
+      } catch {
+        // Respaldo local autónomo si el backend falla
+      }
     }
 
     if (!reactiveBotMsg.content.trim()) {

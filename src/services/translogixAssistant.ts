@@ -1,4 +1,4 @@
-export interface AssistantResponse {
+﻿export interface AssistantResponse {
   content: string
   emotion: 'neutral' | 'happy' | 'empatia' | 'serio'
   sources?: Array<{

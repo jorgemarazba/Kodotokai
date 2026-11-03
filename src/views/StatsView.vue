@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from 'vue'
 import { BarChart3, MessageSquare, Timer, ThumbsUp, Star, Mic, Server, Phone, Trash2, Briefcase } from 'lucide-vue-next'
 import { useStatsStore } from '@/stores/stats'
@@ -49,7 +49,7 @@ function confirmReset() {
       <!-- Encabezado -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <div>
-          <div class="flex items-center gap-2 text-blue-400 text-xs font-semibold uppercase">
+          <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase">
             <img src="/icons/nav-estadisticas.png" alt="Estadísticas" class="w-6 h-6 object-contain inline shrink-0" />
             <span>Panel de métricas</span>
           </div>
@@ -197,14 +197,14 @@ function confirmReset() {
         <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 lg:col-span-2">
           <h3 class="text-sm font-semibold text-white mb-1 flex items-center gap-2">
             <Briefcase class="w-4 h-4 text-blue-400" />
-            Directorio de abogados · {{ lawyersStore.lawyers.length }} publicados
+            Flota & Servicios de Transporte · {{ lawyersStore.lawyers.length }} categorías activas
           </h3>
           <p v-if="avgPrice" class="text-xs text-slate-400 mb-4">
-            Tarifa promedio: ${{ avgPrice.from.toLocaleString('es-CO') }} – ${{ avgPrice.to.toLocaleString('es-CO') }} COP
+            Flete estimado: ${{ avgPrice.from.toLocaleString('es-CO') }} – ${{ avgPrice.to.toLocaleString('es-CO') }} COP
           </p>
           <div v-for="s in lawyersBySpecialty" :key="s.label" class="mb-2.5">
             <div class="flex justify-between text-xs text-slate-300 mb-1"><span>{{ s.label }}</span><span>{{ s.count }}</span></div>
-            <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-purple-500" :style="{ width: barPct(s.count, maxSpecialty) + '%' }"></div></div>
+            <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-emerald-500" :style="{ width: barPct(s.count, maxSpecialty) + '%' }"></div></div>
           </div>
         </section>
       </div>

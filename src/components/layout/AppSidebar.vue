@@ -14,11 +14,13 @@ import {
   CheckCircle2,
   Edit3,
   Send,
+  FileText,
 } from 'lucide-vue-next'
 import { useSessionStore } from '@/stores/session'
 import { useLawyersStore } from '@/stores/lawyers'
 import { useChatStore } from '@/stores/chat'
 import { useStatsStore } from '@/stores/stats'
+import { usePqrsdStore } from '@/stores/pqrsd'
 
 const router = useRouter()
 const route = useRoute()
@@ -26,6 +28,7 @@ const sessionStore = useSessionStore()
 const lawyersStore = useLawyersStore()
 const chatStore = useChatStore()
 const statsStore = useStatsStore()
+const pqrsdStore = usePqrsdStore()
 
 const showSettings = ref(false)
 
@@ -50,6 +53,11 @@ function handleNavigate(path: string) {
 function handleOpenRegister() {
   sessionStore.closeMobileSidebar()
   sessionStore.openEntryTab('service-register')
+}
+
+function handleOpenPqrs(tab: 'radicar' | 'consultar' | 'lista' = 'radicar') {
+  sessionStore.closeMobileSidebar()
+  pqrsdStore.openPqrsModal(tab)
 }
 
 function handleVoiceChange(event: Event) {
@@ -225,6 +233,23 @@ function handleEdit() {
           class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
         />
         <span>Estadísticas</span>
+      </button>
+
+      <!-- 5. Ventanilla PQRSD (Nuevos Endpoints Canónicos) -->
+      <button
+        @click="handleOpenPqrs('radicar')"
+        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group bg-gradient-to-r from-blue-900/40 to-slate-900/60 hover:from-blue-800/50 hover:to-slate-800/70 border border-blue-500/30 text-blue-200 hover:text-white shadow-sm"
+        title="Radicar y consultar peticiones, quejas, reclamos y sugerencias oficiales"
+      >
+        <span class="flex items-center gap-3.5 min-w-0">
+          <div class="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+            <FileText class="w-4 h-4" />
+          </div>
+          <span class="truncate">Ventanilla PQRSD</span>
+        </span>
+        <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          Oficial
+        </span>
       </button>
     </div>
 

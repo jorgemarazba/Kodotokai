@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { Truck } from 'lucide-vue-next'
@@ -10,6 +10,7 @@ let animId = 0
 let botImg: HTMLImageElement | null = null
 const imgLoaded = ref(false)
 let currentJawDrop = 0
+let currentMouthWidthFactor = 1.0
 
 onMounted(() => {
   const img = new Image()
@@ -56,63 +57,88 @@ onMounted(() => {
       const imgW = botImg.naturalWidth
       const imgH = botImg.naturalHeight
 
-      // 1. Dibujar el avatar completo en alta resolución (Remi con el camión TransLogix de fondo)
+      // 1. Dibujar el avatar recortado sin fondo en alta resolución (solo Remi)
       ctx.drawImage(botImg, 0, 0, imgW, imgH, 0, 0, W, H)
 
-      // 2. Apertura dinámica de la mandíbula según el visema actual
+      // 2. Apertura dinámica de la mandíbula y redondeo labial según el visema fonético actual
       let targetDrop = 0
+      let targetWidthFactor = 1.0
       if (isSpeaking) {
         const v = chatStore.currentViseme
-        const osc = 0.70 + 0.30 * Math.sin(t * 26)
-        if (v === 'aa') targetDrop = 4.6 * osc
-        else if (v === 'oh') targetDrop = 3.8 * osc
-        else if (v === 'ee') targetDrop = 2.6 * osc
-        else if (v === 'ih') targetDrop = 2.0 * osc
-        else if (v === 'ou') targetDrop = 3.0 * osc
-        else targetDrop = 0.5
+        const syllablePulse = 0.70 + 0.30 * Math.sin(t * 30)
+        if (v === 'aa') {
+          targetDrop = 8.6 * syllablePulse
+          targetWidthFactor = 1.05
+        } else if (v === 'oh') {
+          targetDrop = 7.2 * syllablePulse
+          targetWidthFactor = 0.88
+        } else if (v === 'ee') {
+          targetDrop = 5.0 * syllablePulse
+          targetWidthFactor = 1.08
+        } else if (v === 'ih') {
+          targetDrop = 3.8 * syllablePulse
+          targetWidthFactor = 1.02
+        } else if (v === 'ou') {
+          targetDrop = 6.0 * syllablePulse
+          targetWidthFactor = 0.85
+        } else {
+          // Cierre bilabial / consonántico / pausa entre palabras
+          targetDrop = 0.1
+          targetWidthFactor = 1.0
+        }
       }
 
-      // Suavizado inercial de la mandíbula
-      currentJawDrop += (targetDrop - currentJawDrop) * 0.35
+      // Suavizado inercial ágil para articulación silábica precisa
+      currentJawDrop += (targetDrop - currentJawDrop) * 0.45
+      currentMouthWidthFactor += (targetWidthFactor - currentMouthWidthFactor) * 0.38
 
-      // 3. Deformación realista de la sonrisa de Remi (TransLogix):
-      // - Coordenadas calibradas para la boca de Remi (x: 316 a 377 en 696px -> 0.454 a 0.542 de W)
-      // - Parábola que sigue el contorno curvo de los dientes superiores
-      if (currentJawDrop > 0.15) {
-        const leftX = Math.floor(W * 0.454)
-        const rightX = Math.ceil(W * 0.542)
-        const endY = H * 0.310
+      // 3. Deformación calibrada de la boca y mentón de Remi:
+      // - Coordenadas exactas en W:580 / H:460 (centrado en boca x: 0.4945, ancho boca 0.025 de W)
+      // - Línea de dientes superiores en 0.2270 * H y mentón en 0.270 * H
+      if (currentJawDrop > 0.2) {
+        const centerX = W * 0.4945
+        const halfBaseW = W * 0.026 * currentMouthWidthFactor
+        const leftX = Math.floor(centerX - halfBaseW)
+        const rightX = Math.ceil(centerX + halfBaseW)
+        const endY = H * 0.270
 
         for (let x = leftX; x <= rightX; x++) {
-          const u = (x - leftX) / (rightX - leftX)
+          const u = (x - leftX) / Math.max(1, rightX - leftX)
           const dx = (u - 0.5) * 2
 
-          // Arco parabólico suave
-          const arch = Math.pow(Math.sin(u * Math.PI), 1.8)
+          // Arco parabólico anatómico: 0 en comisuras, máximo en centro
+          const arch = Math.pow(Math.sin(u * Math.PI), 1.5)
           const dropAtX = currentJawDrop * arch
 
-          if (dropAtX < 0.2) continue
+          if (dropAtX < 0.25) continue
 
-          const splitYAtX = H * (0.2220 - 0.0050 * (dx * dx))
+          const splitYAtX = H * (0.2270 - 0.0042 * (dx * dx))
           const zoneH = endY - splitYAtX
 
           const srcSplitY = (splitYAtX / H) * imgH
           const srcZoneH = (zoneH / H) * imgH
 
-          // Cavidad interior de la boca con gradiente
+          // Cavidad bucal: sombra superior profunda, tono lengua cálido inferior
           const cavityGrad = ctx.createLinearGradient(
             0,
-            splitYAtX - 0.3,
+            splitYAtX - 0.2,
             0,
             splitYAtX + dropAtX + 1.2
           )
-          cavityGrad.addColorStop(0, '#1c080a')
-          cavityGrad.addColorStop(0.55, '#3b1216')
-          cavityGrad.addColorStop(1, '#571c22')
+          cavityGrad.addColorStop(0, '#150305')
+          cavityGrad.addColorStop(0.42, '#350d12')
+          cavityGrad.addColorStop(0.85, '#681e26')
+          cavityGrad.addColorStop(1, '#3b0e13')
           ctx.fillStyle = cavityGrad
           ctx.fillRect(x, splitYAtX - 0.2, 1.35, dropAtX + 1.2)
 
-          // Proyectar el labio inferior y mentón hacia abajo
+          // Dientes superiores visibles en apertura amplia
+          if (dropAtX > 2.0 && Math.abs(dx) < 0.72) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
+            ctx.fillRect(x, splitYAtX - 0.2, 1.35, Math.min(1.4, dropAtX * 0.22))
+          }
+
+          // Desplazar labio inferior y mentón hacia abajo en sincronía fonética
           const srcX = (x / W) * imgW
           const srcColW = (1.35 / W) * imgW
           const dstY = splitYAtX + dropAtX
@@ -159,13 +185,13 @@ onBeforeUnmount(() => {
         }"
       ></div>
 
-      <!-- Canvas 2D con borde suave y sombra estética -->
-      <div class="relative z-10 w-full rounded-3xl overflow-hidden border border-slate-800/80 bg-slate-950/80 shadow-2xl shadow-blue-950/40">
+      <!-- Canvas 2D transparente (solo el personaje Remi sin caja ni fondo) -->
+      <div class="relative z-10 w-full overflow-visible">
         <canvas
           ref="canvasRef"
           width="580"
           height="460"
-          class="w-full h-auto object-cover block"
+          class="w-full h-auto object-contain block drop-shadow-[0_18px_28px_rgba(0,0,0,0.65)]"
         ></canvas>
 
         <!-- Etiqueta Flotante Superior: TransLogix Express -->
