@@ -1,0 +1,413 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 12386 >>
+stream
+q
+1 1 1 rg
+0 0 842 595 re f
+Q
+q
+0.06 0.09 0.16 rg
+28 525 786 48 re f
+Q
+BT /F2 15 Tf 1 1 1 rg 1 0 0 1 42 552 Tm (REMI-915 - PLATAFORMA JURIDICA INTELIGENTE \(COLOMBIA\)) Tj ET
+BT /F1 9.5 Tf 0.58 0.77 0.99 rg 1 0 0 1 42 535 Tm (Informe Ejecutivo de Implementacion Exitosa y Matriz General de Funcionalidades del Software) Tj ET
+BT /F2 9 Tf 0.94 0.96 1 rg 1 0 0 1 645 552 Tm (Vue 3 + TypeScript + FastAPI RAG) Tj ET
+BT /F1 8.5 Tf 0.58 0.77 0.99 rg 1 0 0 1 645 537 Tm (Ollama Local \(Qwen 2.5\) + Voz IA) Tj ET
+BT /F2 11 Tf 0.12 0.23 0.54 rg 1 0 0 1 28 507 Tm (1. LO QUE HEMOS IMPLEMENTADO CON EXITO) Tj ET
+q
+0.15 0.39 0.92 rg
+28 503 786 1.2 re f
+Q
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+28 456 386 41 re B
+Q
+q
+0.15 0.39 0.92 rg
+28 456 3.5 41 re f
+Q
+BT /F2 9 Tf 0.06 0.09 0.16 rg 1 0 0 1 38 484 Tm (1. Arquitectura SPA Reactiva \(Vue 3 + TypeScript + Pinia + Tailwind v4\)) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 38 472 Tm (Aplicacion de pagina unica sin recargas con vistas modulares \(ChatView, LawyersView,) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 38 462 Tm (MultiserviceView\), estado reactivo en Pinia y proxy anti-CORS integrado en Vite.) Tj ET
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+428 456 386 41 re B
+Q
+q
+0.15 0.39 0.92 rg
+428 456 3.5 41 re f
+Q
+BT /F2 9 Tf 0.06 0.09 0.16 rg 1 0 0 1 438 484 Tm (2. Avatar Interactivo Remi-915 con Lip-Sync Curvo \(Canvas 2D\)) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 438 472 Tm (Renderizado sobre fondo transparente con respiracion, inclinacion e iluminacion reactiva.) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 438 462 Tm (Sincronizacion labial parabolica calibrada sobre la curva real de su sonrisa.) Tj ET
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+28 409 386 41 re B
+Q
+q
+0.15 0.39 0.92 rg
+28 409 3.5 41 re f
+Q
+BT /F2 9 Tf 0.06 0.09 0.16 rg 1 0 0 1 38 437 Tm (3. Voz Neuronal Masculina IA \(edge-tts\) + Microfono Continuo \(es-CO\)) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 38 425 Tm (Endpoint /v1/tts con 4 voces neuronales masculinas \(Gonzalo Colombia, Jorge, Alvaro, Tomas\),) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 38 415 Tm (selector de voz y timbre en vivo, y escucha continua por microfono con envio automatico.) Tj ET
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+428 409 386 41 re B
+Q
+q
+0.15 0.39 0.92 rg
+428 409 3.5 41 re f
+Q
+BT /F2 9 Tf 0.06 0.09 0.16 rg 1 0 0 1 438 437 Tm (4. IA Local \(Ollama Qwen 2.5\) + RAG en Streaming SSE + Directorios) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 438 425 Tm (Streaming en tiempo real \(/v1/chat/stream\) con base legal colombiana \(CST, Ley 820, 1480,) Tj ET
+BT /F1 8 Tf 0.28 0.33 0.41 rg 1 0 0 1 438 415 Tm (1801, Tutela, Peticion\) y directorios Lawyers y Multiservice \(Bogota, Medellin y Cali\).) Tj ET
+BT /F2 11 Tf 0.12 0.23 0.54 rg 1 0 0 1 28 391 Tm (2. TABLA GENERAL DE FUNCIONALIDADES DEL SOFTWARE \(REMI-915\)) Tj ET
+q
+0.15 0.39 0.92 rg
+28 387 786 1.2 re f
+Q
+q
+0.06 0.09 0.16 rg
+28 364 786 20 re f
+Q
+BT /F2 8.5 Tf 1 1 1 rg 1 0 0 1 34 370 Tm (#) Tj ET
+BT /F2 8.5 Tf 1 1 1 rg 1 0 0 1 55 370 Tm (MODULO / COMPONENTE) Tj ET
+BT /F2 8.5 Tf 1 1 1 rg 1 0 0 1 215 370 Tm (FUNCIONALIDAD IMPLEMENTADA) Tj ET
+BT /F2 8.5 Tf 1 1 1 rg 1 0 0 1 585 370 Tm (TECNOLOGIA / ARCHIVO CLAVE) Tj ET
+BT /F2 8.5 Tf 1 1 1 rg 1 0 0 1 748 370 Tm (ESTADO) Tj ET
+q
+1 1 1 rg
+0.80 0.84 0.88 RG 0.6 w
+28 330 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 330 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 330 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 330 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 330 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 344 Tm (1) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 349 Tm (Avatar Remi-915 y Lip-Sync) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 349 Tm (Animacion facial 2D en tiempo real que mueve el labio inferior y menton siguiendo la parabola) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 338 Tm (de la sonrisa segun los fonemas \(aa, ee, ih, oh, ou\), con respiracion y halo reactivo.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 349 Tm (HTML5 Canvas 2D) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 338 Tm (AvatarCanvas.vue) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 340 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 344 Tm (OPERATIVO) Tj ET
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+28 296 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 296 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 296 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 296 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 296 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 310 Tm (2) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 315 Tm (Sintesis de Voz Neuronal \(TTS\)) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 315 Tm (Lectura automatica en voz alta con 4 voces neuronales masculinas IA \(Gonzalo Colombia,) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 304 Tm (Jorge, Alvaro, Tomas\), selector de voz y timbre en vivo, y boton de silencio.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 315 Tm (edge-tts \(POST /v1/tts\)) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 304 Tm (src/stores/chat.ts) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 306 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 310 Tm (OPERATIVO) Tj ET
+q
+1 1 1 rg
+0.80 0.84 0.88 RG 0.6 w
+28 262 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 262 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 262 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 262 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 262 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 276 Tm (3) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 281 Tm (Escucha por Microfono \(STT\)) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 281 Tm (Boton 'Hablar con Avatar' con escucha continua en espanol \(es-CO\), transcripcion en vivo) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 270 Tm (en los subtitulos sincronizados y envio automatico tras detectar pausa de voz.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 281 Tm (Web Speech API) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 270 Tm (src/views/ChatView.vue) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 272 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 276 Tm (OPERATIVO) Tj ET
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+28 228 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 228 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 228 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 228 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 228 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 242 Tm (4) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 247 Tm (IA Local + RAG con Streaming) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 247 Tm (Consultas sobre legislacion colombiana \(Laboral CST, Arriendo Ley 820, Consumidor Ley 1480,) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 236 Tm (Policia Ley 1801, Tutela, Peticion, Transito, Familia y Penal\) en streaming SSE con citas.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 247 Tm (Ollama + FastAPI SSE) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 236 Tm (api/main.py y api/rag.py) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 238 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 242 Tm (OPERATIVO) Tj ET
+q
+1 1 1 rg
+0.80 0.84 0.88 RG 0.6 w
+28 194 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 194 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 194 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 194 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 194 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 208 Tm (5) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 213 Tm (Pestana 1: Usuario \(Sesion\)) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 213 Tm (Ingreso con nombre, correo y ciudad \(Bogota D.C., Medellin o Cali\) que crea una instancia) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 202 Tm (de conversacion aislada por usuario sin mezclar historiales ni usar localStorage.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 213 Tm (Pinia Session Store) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 202 Tm (EntryTabsModal.vue) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 204 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 208 Tm (OPERATIVO) Tj ET
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+28 160 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 160 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 160 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 160 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 160 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 174 Tm (6) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 179 Tm (Pestana 2: Registro Servicio) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 179 Tm (Formulario para abogados \(tarjeta profesional, universidad, especialidad, tarifas y oferta) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 168 Tm (de servicio\) con publicacion inmediata en Lawyers bajo insignia 'Sin verificar'.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 179 Tm (Pinia Lawyers Store) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 168 Tm (src/stores/lawyers.ts) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 170 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 174 Tm (OPERATIVO) Tj ET
+q
+1 1 1 rg
+0.80 0.84 0.88 RG 0.6 w
+28 126 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 126 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 126 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 126 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 126 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 140 Tm (7) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 145 Tm (Seccion Lawyers \(Abogados\)) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 145 Tm (Bolsa de servicios juridicos tipo LinkedIn con buscador, filtro por especialidad y ciudad,) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 134 Tm (estado de verificacion y botones de contacto directo por WhatsApp, Llamada y Correo.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 145 Tm (Vue Router \(/lawyers\)) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 134 Tm (src/views/LawyersView.vue) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 136 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 140 Tm (OPERATIVO) Tj ET
+q
+0.97 0.98 0.99 rg
+0.80 0.84 0.88 RG 0.6 w
+28 92 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 92 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 92 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 92 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 92 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 106 Tm (8) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 111 Tm (Seccion Multiservice \(Policia\)) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 111 Tm (Directorio ciudadano filtrado por Bogota D.C., Medellin y Cali con los CAI de la Policia) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 100 Tm (Nacional y las Inspecciones de Policia \(incluyendo el nombre del Inspector\(a\) actual\).) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 111 Tm (Vue Router \(/multiservice\)) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 100 Tm (MultiserviceView.vue) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 102 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 106 Tm (OPERATIVO) Tj ET
+q
+1 1 1 rg
+0.80 0.84 0.88 RG 0.6 w
+28 58 786 34 re B
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+50 58 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+210 58 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+580 58 0.5 34 re S
+Q
+q
+0.85 0.88 0.92 RG 0.6 w
+740 58 0.5 34 re S
+Q
+BT /F2 8.5 Tf 0.15 0.39 0.92 rg 1 0 0 1 35 72 Tm (9) Tj ET
+BT /F2 8.3 Tf 0.06 0.09 0.16 rg 1 0 0 1 55 77 Tm (Barra Lateral e Historial) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 77 Tm (Navegacion principal en orden \(Nuevo chat -> Lawyers -> Multiservice\), selector de ciudad) Tj ET
+BT /F1 7.8 Tf 0.20 0.25 0.33 rg 1 0 0 1 215 66 Tm (en vivo, historial de consultas del usuario activo y cambio/cierre de sesion.) Tj ET
+BT /F2 7.8 Tf 0.12 0.23 0.54 rg 1 0 0 1 585 77 Tm (Layout Principal) Tj ET
+BT /F1 7.6 Tf 0.35 0.42 0.52 rg 1 0 0 1 585 66 Tm (AppSidebar.vue) Tj ET
+q
+0.86 0.99 0.91 rg
+0.53 0.94 0.67 RG 0.6 w
+747 68 59 14 re B
+Q
+BT /F2 7.5 Tf 0.09 0.40 0.20 rg 1 0 0 1 754 72 Tm (OPERATIVO) Tj ET
+BT /F1 8 Tf 0.40 0.45 0.53 rg 1 0 0 1 28 18 Tm (Proyecto: Remi-915 - Asistencia Juridica Local con IA \(Colombia\) | Frontend: Vue 3 + TypeScript | Backend: FastAPI RAG + Ollama + edge-tts) Tj ET
+BT /F2 8 Tf 0.15 0.39 0.92 rg 1 0 0 1 745 18 Tm (Pagina 1 de 1) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000348 00000 n 
+0000000450 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+12889
+%%EOF
