@@ -23,40 +23,16 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
-        configure: (proxy) => {
-          proxy.on('error', (_err, _req, res) => {
-            if ('writeHead' in res && !res.headersSent) {
-              res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify({ status: 'ok', neural_tts: false, local_mode: true }))
-            }
-          })
-        },
       },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
-        configure: (proxy) => {
-          proxy.on('error', (_err, _req, res) => {
-            if ('writeHead' in res && !res.headersSent) {
-              res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify({ status: 'fallback', message: 'Modo autónomo' }))
-            }
-          })
-        },
       },
       '/v1': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
-        configure: (proxy) => {
-          proxy.on('error', (_err, _req, res) => {
-            if ('writeHead' in res && !res.headersSent) {
-              res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify({ status: 'fallback' }))
-            }
-          })
-        },
       },
     },
   },

@@ -647,6 +647,16 @@ export const useChatStore = defineStore('chat', () => {
     const radicadoMatch = content.match(/\bPQRSD-[0-9]{4}-[0-9]{6}\b/i)
     if (radicadoMatch && radicadoMatch[0]) {
       const radicado = radicadoMatch[0].toUpperCase()
+      if (!isBackendEnabled) {
+        const configErr = `⚠️ **Error de configuración**: La consulta de PQRSD requiere conexión con el backend. Por favor configura \`VITE_ENABLE_BACKEND=true\` en el archivo \`.env\` e inicia el servidor FastAPI.`
+        reactiveBotMsg.content = configErr
+        reactiveBotMsg.emotion = 'serio'
+        reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+        liveSubtitle.value = 'Error: Backend no habilitado en .env'
+        speakWithLipSync('Error: El backend no está habilitado en las variables de entorno.', 'serio')
+        return
+      }
+
       try {
         const resPqrs = await fetch(`/api/v1/pqrsd/${encodeURIComponent(radicado)}`)
         if (resPqrs.ok) {
@@ -666,68 +676,83 @@ export const useChatStore = defineStore('chat', () => {
           liveSubtitle.value = respText
           speakWithLipSync(respText, 'empatia')
           return
+        } else {
+          const errData = await resPqrs.json().catch(() => null)
+          const errorMsg = errData?.detail || `No se encontró el radicado ${radicado} en el sistema oficial.`
+          reactiveBotMsg.content = `⚠️ **Error en consulta oficial**: ${errorMsg}`
+          reactiveBotMsg.emotion = 'serio'
+          reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+          liveSubtitle.value = reactiveBotMsg.content
+          speakWithLipSync(reactiveBotMsg.content, 'serio')
+          return
         }
-      } catch {
-        // Continuar si falla la conexión
+      } catch (err) {
+        reactiveBotMsg.content = `⚠️ **Error de conexión con el backend**: No fue posible consultar el radicado ${radicado}. Por favor verifica que el backend FastAPI esté en ejecución en http://localhost:8000.`
+        reactiveBotMsg.emotion = 'serio'
+        reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+        liveSubtitle.value = 'Error: Sin conexión con el servidor backend.'
+        speakWithLipSync('Error de conexión con el servidor backend.', 'serio')
+        return
       }
     }
 
-    // 1. Consumo directo del backend FastAPI (/api/v1/ask) solo si está habilitado
-    if (isBackendEnabled) {
-      try {
-        const response = await fetch('/api/v1/ask', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            question: content.trim(),
-          }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data && data.answer) {
-            reactiveBotMsg.content = data.answer
-            reactiveBotMsg.sources = normalizeRagSources(data.sources)
-            reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
-            liveSubtitle.value = reactiveBotMsg.content
-
-            statsStore.logQuery({
-              question: content,
-              responseMs: reactiveBotMsg.responseTimeMs,
-              origin: 'backend',
-              mode,
-              laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
-            })
-
-            speakWithLipSync(reactiveBotMsg.content, 'empatia')
-            return
-          }
-        }
-      } catch {
-        // Respaldo local autónomo si el backend falla
-      }
+    // 1. Verificación obligatoria de backend habilitado
+    if (!isBackendEnabled) {
+      const configErr = `⚠️ **Error de configuración**: El frontend requiere un backend activo para procesar consultas. Por favor agrega o verifica la variable \`VITE_ENABLE_BACKEND=true\` en tu archivo \`.env\` e inicia el servidor FastAPI en el puerto 8000.`
+      reactiveBotMsg.content = configErr
+      reactiveBotMsg.emotion = 'serio'
+      reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+      liveSubtitle.value = 'Error: VITE_ENABLE_BACKEND no está en true en .env'
+      speakWithLipSync('El backend no está habilitado en la configuración. Se requiere VITE_ENABLE_BACKEND igual a true.', 'serio')
+      return
     }
 
-    if (!reactiveBotMsg.content.trim()) {
-      // Motor Autónomo TransLogix Colombia (Sin requerir backend)
-      const localResp = generateTranslogixResponse(content)
-      reactiveBotMsg.sources = localResp.sources ?? []
-      reactiveBotMsg.emotion = localResp.emotion
-      reactiveBotMsg.responseTimeMs = Math.max(120, Math.round(performance.now() - startMs))
-      reactiveBotMsg.content = localResp.content
-      liveSubtitle.value = localResp.content
-
-      statsStore.logQuery({
-        question: content,
-        responseMs: reactiveBotMsg.responseTimeMs,
-        origin: 'local',
-        mode,
-        laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+    // 2. Consumo directo del backend FastAPI (/api/v1/ask)
+    try {
+      const response = await fetch('/api/v1/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: content.trim(),
+        }),
       })
 
-      speakWithLipSync(reactiveBotMsg.content, localResp.emotion)
+      if (response.ok) {
+        const data = await response.json()
+        if (data && data.answer) {
+          reactiveBotMsg.content = data.answer
+          reactiveBotMsg.sources = normalizeRagSources(data.sources)
+          reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+          liveSubtitle.value = reactiveBotMsg.content
+
+          statsStore.logQuery({
+            question: content,
+            responseMs: reactiveBotMsg.responseTimeMs,
+            origin: 'backend',
+            mode,
+            laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+          })
+
+          speakWithLipSync(reactiveBotMsg.content, 'empatia')
+          return
+        } else {
+          throw new Error('Respuesta inválida o vacía recibida del servidor backend.')
+        }
+      } else {
+        const errData = await response.json().catch(() => null)
+        const detail = errData?.detail || `Error HTTP ${response.status} devuelto por el servidor backend.`
+        throw new Error(detail)
+      }
+    } catch (err: any) {
+      const errorText = `⚠️ **Error de conexión con el backend**: No fue posible comunicarse con el servidor FastAPI en \`http://localhost:8000\`.\n\nPor favor verifica:\n1. Que el servidor backend esté en ejecución (\`python scripts/dev.py api\`).\n2. Que la variable \`VITE_ENABLE_BACKEND=true\` esté configurada en tu archivo \`.env\`.\n\n*Detalle técnico: ${err?.message || 'Fallo de conexión'}.*`
+      reactiveBotMsg.content = errorText
+      reactiveBotMsg.emotion = 'serio'
+      reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+      liveSubtitle.value = 'Error: Sin conexión con el servidor backend FastAPI.'
+      speakWithLipSync('Error de conexión con el servidor backend. Por favor verifica que esté en ejecución.', 'serio')
+      return
     }
   }
 

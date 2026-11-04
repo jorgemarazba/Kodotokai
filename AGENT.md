@@ -58,7 +58,7 @@ Kodotokai/
 ### A. Nombres de Marca e Identidad
 1. **Nombre del asistente**: Estrictamente **Remi** (nunca "Remi-915").
 2. **Nombre de la empresa**: **TransLogix Colombia** (o **TransLogix Colombia S.A.S.**).
-3. **Backend autónomo**: La aplicación no depende del servidor backend de FastAPI/Ollama; el frontend cuenta con el motor de asesoría logística local `src/services/translogixAssistant.ts` que responde en tiempo real con lip-sync en caso de ausencia de backend.
+3. **Backend obligatorio**: La aplicación opera bajo una arquitectura cliente-servidor estricta y requiere el backend FastAPI/Ollama en ejecución (`VITE_ENABLE_BACKEND=true`). Si el backend no está disponible o la conexión falla, el sistema debe arrojar un error explícito de conexión en lugar de simular respuestas autónomas locales.
 
 ### B. Animación del Avatar y Sincronización Labial (`AvatarCanvas.vue`)
 1. **Algoritmo de Lip-Sync de la Sonrisa Original**:
