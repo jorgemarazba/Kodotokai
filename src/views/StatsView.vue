@@ -114,7 +114,7 @@ function confirmReset() {
           <div>
             <p class="text-xs text-slate-400">Origen de las respuestas</p>
             <p class="text-sm text-white font-semibold">
-              {{ stats.backendPct }}% backend · {{ stats.totalQueries ? 100 - stats.backendPct : 0 }}% respaldo local
+              {{ stats.backendPct }}% backend · {{ stats.errorPct }}% errores
             </p>
           </div>
         </div>

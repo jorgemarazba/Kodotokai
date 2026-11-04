@@ -2,12 +2,86 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useSessionStore } from './session'
 import { useStatsStore } from './stats'
-import { generateTranslogixResponse } from '@/services/translogixAssistant'
 
 export interface LegalCitation {
   lawName: string
   articleNumber: string
   excerpt: string
+}
+
+export interface ChatError {
+  status?: number
+  detail: string
+}
+
+export type BackendStatus = 'unknown' | 'online' | 'offline'
+
+interface PqrsdCaseResponse {
+  radicado: string
+  estado: string
+  asunto: string
+  fecha_radicacion: string
+  fecha_vencimiento: string
+  dias_restantes: number
+  respuesta?: string | null
+}
+
+function isPqrsdCase(value: unknown): value is PqrsdCaseResponse {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return (
+    typeof candidate.radicado === 'string' &&
+    typeof candidate.estado === 'string' &&
+    typeof candidate.asunto === 'string' &&
+    typeof candidate.fecha_radicacion === 'string' &&
+    typeof candidate.fecha_vencimiento === 'string' &&
+    typeof candidate.dias_restantes === 'number' &&
+    (candidate.respuesta === undefined ||
+      candidate.respuesta === null ||
+      typeof candidate.respuesta === 'string')
+  )
+}
+
+function formatApiError(status: number, detail: string): string {
+  const suffix = detail ? ` Detalle: ${detail}` : ''
+  switch (status) {
+    case 422:
+      return `El backend rechazó la consulta (422). Revisa los datos enviados.${suffix}`
+    case 502:
+    case 504:
+      return `El backend no respondió (${status}). Verifica que FastAPI esté corriendo en http://localhost:8000.${suffix}`
+    case 503:
+      return `El backend no pudo completar la solicitud (503).${suffix}`
+    case 500:
+      return `El backend falló al procesar la consulta (500). Revisa los logs del servidor.${suffix}`
+    default:
+      return `El backend respondió con un error HTTP ${status}.${suffix}`
+  }
+}
+
+async function readErrorDetail(response: Response): Promise<string> {
+  const raw = await response.text().catch(() => '')
+  if (!raw.trim()) return ''
+  try {
+    const parsed = JSON.parse(raw) as { detail?: unknown; message?: unknown }
+    if (typeof parsed.detail === 'string') return parsed.detail
+    if (parsed.detail && typeof parsed.detail === 'object') {
+      const detail = parsed.detail as { message?: unknown; available_categories?: unknown }
+      const categories = Array.isArray(detail.available_categories)
+        ? ` Categorías disponibles: ${detail.available_categories.join(', ')}.`
+        : ''
+      if (typeof detail.message === 'string') return `${detail.message}.${categories}`
+      return JSON.stringify(parsed.detail)
+    }
+    if (typeof parsed.message === 'string') return parsed.message
+    return raw.trim()
+  } catch {
+    return raw.trim()
+  }
+}
+
+function connectionErrorMessage(): string {
+  return 'No se pudo conectar con el backend. Verifica que FastAPI esté corriendo en http://localhost:8000 y que el proxy de Vite apunte a ese puerto.'
 }
 
 export type AvatarGesture = 'idle' | 'greeting' | 'explaining' | 'affirming' | 'denying'
@@ -61,6 +135,7 @@ export interface ChatMessage {
   emotion?: 'neutral' | 'happy' | 'empatia' | 'serio'
   sources?: LegalCitation[]
   responseTimeMs?: number
+  error?: ChatError
   createdAt: string
 }
 
@@ -149,27 +224,35 @@ export const useChatStore = defineStore('chat', () => {
   let speechStarted = false
   let welcomeDone = false
   const neuralTtsAvailable = ref<boolean | null>(null)
+  const backendStatus = ref<BackendStatus>('unknown')
 
-  const isBackendEnabled = import.meta.env.VITE_ENABLE_BACKEND === 'true'
-
-  async function checkNeuralTtsStatus(): Promise<boolean> {
-    if (!isBackendEnabled) return false
-    if (neuralTtsAvailable.value !== null) return neuralTtsAvailable.value
+  async function checkBackendHealth(): Promise<boolean> {
     try {
       const controller = new AbortController()
       const to = setTimeout(() => controller.abort(), 4000)
       const res = await fetch('/health', { signal: controller.signal })
       clearTimeout(to)
-      if (res.ok) {
-        const data = await res.json()
-        neuralTtsAvailable.value = data?.neural_tts === true
-        return neuralTtsAvailable.value
+      if (!res.ok) {
+        backendStatus.value = 'offline'
+        neuralTtsAvailable.value = false
+        return false
       }
+      const data = (await res.json().catch(() => null)) as { neural_tts?: boolean } | null
+      neuralTtsAvailable.value = data?.neural_tts === true
+      backendStatus.value = 'online'
+      return true
     } catch {
-      // ignorar
+      backendStatus.value = 'offline'
+      neuralTtsAvailable.value = false
+      return false
     }
-    neuralTtsAvailable.value = false
-    return false
+  }
+
+  async function checkNeuralTtsStatus(): Promise<boolean> {
+    if (backendStatus.value === 'offline') return false
+    if (neuralTtsAvailable.value !== null) return neuralTtsAvailable.value
+    await checkBackendHealth()
+    return neuralTtsAvailable.value === true
   }
 
   function loadSpanishVoices() {
@@ -612,19 +695,20 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function sendUserMessage(content: string, mode: 'text' | 'voice' = 'text') {
-    if (!content.trim()) return
+    const question = content.trim()
+    if (!question) return
     if (!activeConversation.value) {
       startNewChat()
     }
     const conv = activeConversation.value!
     if (conv.messages.length <= 1) {
-      conv.title = content.slice(0, 38) + (content.length > 38 ? '...' : '')
+      conv.title = question.slice(0, 38) + (question.length > 38 ? '...' : '')
     }
 
     conv.messages.push({
       id: crypto.randomUUID(),
       sender: 'USER',
-      content: content.trim(),
+      content: question,
       createdAt: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
     })
 
@@ -643,91 +727,122 @@ export const useChatStore = defineStore('chat', () => {
     conv.messages.push(botMsg)
     const reactiveBotMsg = conv.messages[conv.messages.length - 1]!
 
+    const finishWithError = (detail: string, status?: number) => {
+      reactiveBotMsg.error = { status, detail }
+      reactiveBotMsg.content = detail
+      reactiveBotMsg.sources = []
+      reactiveBotMsg.responseTimeMs = Math.max(1, Math.round(performance.now() - startMs))
+      liveSubtitle.value = detail
+      stopSpeaking()
+      statsStore.logQuery({
+        question,
+        responseMs: reactiveBotMsg.responseTimeMs,
+        origin: 'error',
+        mode,
+        laws: [],
+      })
+    }
+
     // 0. Detección en vivo de consulta de expediente PQRSD
-    const radicadoMatch = content.match(/\bPQRSD-[0-9]{4}-[0-9]{6}\b/i)
+    const radicadoMatch = question.match(/\bPQRSD-[0-9]{4}-[0-9]{6}\b/i)
     if (radicadoMatch && radicadoMatch[0]) {
       const radicado = radicadoMatch[0].toUpperCase()
       try {
         const resPqrs = await fetch(`/api/v1/pqrsd/${encodeURIComponent(radicado)}`)
-        if (resPqrs.ok) {
-          const caseData = await resPqrs.json()
-          const respText = `He consultado en tiempo real el expediente del radicado **${caseData.radicado}** en nuestra base oficial:\n\n• **Estado actual**: ${caseData.estado.toUpperCase()}\n• **Asunto**: ${caseData.asunto}\n• **Fecha de radicación**: ${new Date(caseData.fecha_radicacion).toLocaleDateString('es-CO')}\n• **Vencimiento oficial**: ${caseData.fecha_vencimiento} (${caseData.dias_restantes} días hábiles restantes)\n${caseData.respuesta ? `• **Respuesta oficial**: ${caseData.respuesta}` : '• **Trámite**: En curso por la dependencia competente.'}\n\nPuedes revisar la bitácora completa en la **Ventanilla PQRSD** del menú.`
-
-          reactiveBotMsg.content = respText
-          reactiveBotMsg.emotion = 'empatia'
-          reactiveBotMsg.sources = [
-            {
-              lawName: 'Expediente PQRSD',
-              articleNumber: caseData.radicado,
-              excerpt: `Vencimiento legal: ${caseData.fecha_vencimiento} · Estado: ${caseData.estado}`,
-            },
-          ]
-          reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
-          liveSubtitle.value = respText
-          speakWithLipSync(respText, 'empatia')
+        backendStatus.value = resPqrs.status === 502 || resPqrs.status === 504 ? 'offline' : 'online'
+        if (!resPqrs.ok) {
+          const detail = await readErrorDetail(resPqrs)
+          finishWithError(
+            resPqrs.status === 404
+              ? `No se encontró el radicado ${radicado} en el backend.${detail ? ` Detalle: ${detail}` : ''}`
+              : formatApiError(resPqrs.status, detail),
+            resPqrs.status
+          )
           return
         }
-      } catch {
-        // Continuar si falla la conexión
-      }
-    }
-
-    // 1. Consumo directo del backend FastAPI (/api/v1/ask) solo si está habilitado
-    if (isBackendEnabled) {
-      try {
-        const response = await fetch('/api/v1/ask', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            question: content.trim(),
-          }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data && data.answer) {
-            reactiveBotMsg.content = data.answer
-            reactiveBotMsg.sources = normalizeRagSources(data.sources)
-            reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
-            liveSubtitle.value = reactiveBotMsg.content
-
-            statsStore.logQuery({
-              question: content,
-              responseMs: reactiveBotMsg.responseTimeMs,
-              origin: 'backend',
-              mode,
-              laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
-            })
-
-            speakWithLipSync(reactiveBotMsg.content, 'empatia')
-            return
-          }
+        const caseData: unknown = await resPqrs.json().catch(() => null)
+        if (!isPqrsdCase(caseData)) {
+          finishWithError(
+            'El backend respondió sin un expediente PQRSD válido. Revisa la respuesta de /api/v1/pqrsd/{radicado}.'
+          )
+          return
         }
+        const respText = `He consultado en tiempo real el expediente del radicado **${caseData.radicado}** en nuestra base oficial:\n\n• **Estado actual**: ${caseData.estado.toUpperCase()}\n• **Asunto**: ${caseData.asunto}\n• **Fecha de radicación**: ${new Date(caseData.fecha_radicacion).toLocaleDateString('es-CO')}\n• **Vencimiento oficial**: ${caseData.fecha_vencimiento} (${caseData.dias_restantes} días hábiles restantes)\n${caseData.respuesta ? `• **Respuesta oficial**: ${caseData.respuesta}` : '• **Trámite**: En curso por la dependencia competente.'}\n\nPuedes revisar la bitácora completa en la **Ventanilla PQRSD** del menú.`
+
+        reactiveBotMsg.content = respText
+        reactiveBotMsg.emotion = 'empatia'
+        reactiveBotMsg.sources = [
+          {
+            lawName: 'Expediente PQRSD',
+            articleNumber: caseData.radicado,
+            excerpt: `Vencimiento legal: ${caseData.fecha_vencimiento} · Estado: ${caseData.estado}`,
+          },
+        ]
+        reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+        liveSubtitle.value = respText
+        statsStore.logQuery({
+          question,
+          responseMs: reactiveBotMsg.responseTimeMs,
+          origin: 'backend',
+          mode,
+          laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+        })
+        speakWithLipSync(respText, 'empatia')
+        return
       } catch {
-        // Respaldo local autónomo si el backend falla
+        backendStatus.value = 'offline'
+        finishWithError(connectionErrorMessage())
+        return
       }
     }
 
-    if (!reactiveBotMsg.content.trim()) {
-      // Motor Autónomo TransLogix Colombia (Sin requerir backend)
-      const localResp = generateTranslogixResponse(content)
-      reactiveBotMsg.sources = localResp.sources ?? []
-      reactiveBotMsg.emotion = localResp.emotion
-      reactiveBotMsg.responseTimeMs = Math.max(120, Math.round(performance.now() - startMs))
-      reactiveBotMsg.content = localResp.content
-      liveSubtitle.value = localResp.content
+    // 1. Consumo obligatorio del backend FastAPI (/api/v1/ask)
+    try {
+      const response = await fetch('/api/v1/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question }),
+      })
+
+      backendStatus.value = response.status === 502 || response.status === 504 ? 'offline' : 'online'
+
+      if (!response.ok) {
+        const detail = await readErrorDetail(response)
+        finishWithError(formatApiError(response.status, detail), response.status)
+        return
+      }
+
+      const data = (await response.json().catch(() => null)) as
+        | { answer?: unknown; sources?: unknown }
+        | null
+      const answer = typeof data?.answer === 'string' ? data.answer.trim() : ''
+
+      if (!answer) {
+        finishWithError(
+          'El backend respondió sin una respuesta válida (`answer` vacío o ausente). Revisa la respuesta de /api/v1/ask.'
+        )
+        return
+      }
+
+      reactiveBotMsg.content = answer
+      reactiveBotMsg.sources = normalizeRagSources(data?.sources)
+      reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+      liveSubtitle.value = answer
 
       statsStore.logQuery({
-        question: content,
+        question,
         responseMs: reactiveBotMsg.responseTimeMs,
-        origin: 'local',
+        origin: 'backend',
         mode,
         laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
       })
 
-      speakWithLipSync(reactiveBotMsg.content, localResp.emotion)
+      speakWithLipSync(answer, 'empatia')
+    } catch {
+      backendStatus.value = 'offline'
+      finishWithError(connectionErrorMessage())
     }
   }
 
@@ -743,6 +858,8 @@ export const useChatStore = defineStore('chat', () => {
     gestureStartedAt,
     currentViseme,
     liveSubtitle,
+    backendStatus,
+    checkBackendHealth,
     availableVoices,
     selectedVoiceId,
     voicePitch,

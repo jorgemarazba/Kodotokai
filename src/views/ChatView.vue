@@ -55,9 +55,22 @@ const formattedDuration = computed(() => {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 })
 
+const backendStatusLabel = computed(() => {
+  if (chatStore.backendStatus === 'online') return 'Backend en línea'
+  if (chatStore.backendStatus === 'offline') return 'Backend sin conexión'
+  return 'Verificando backend'
+})
+
+const backendStatusColor = computed(() => {
+  if (chatStore.backendStatus === 'online') return 'text-emerald-400'
+  if (chatStore.backendStatus === 'offline') return 'text-red-400'
+  return 'text-slate-500'
+})
+
 onMounted(() => {
   chatStore.loadSpanishVoices?.()
   chatStore.playWelcomeGreeting()
+  void chatStore.checkBackendHealth()
 })
 
 onBeforeUnmount(() => {
@@ -480,10 +493,17 @@ onBeforeUnmount(() => {
             :class="
               msg.sender === 'USER'
                 ? 'max-w-2xl sm:max-w-3xl bg-emerald-600 text-white rounded-br-none shadow-md shadow-emerald-600/30'
-                : 'max-w-3xl sm:max-w-4xl xl:max-w-5xl bg-slate-900/90 border border-slate-800 text-slate-100 rounded-bl-none shadow-xl backdrop-blur-md'
+                : msg.error
+                  ? 'max-w-3xl sm:max-w-4xl xl:max-w-5xl bg-red-950/40 border border-red-500/50 text-red-100 rounded-bl-none shadow-xl backdrop-blur-md'
+                  : 'max-w-3xl sm:max-w-4xl xl:max-w-5xl bg-slate-900/90 border border-slate-800 text-slate-100 rounded-bl-none shadow-xl backdrop-blur-md'
             "
+            :role="msg.error ? 'alert' : undefined"
           >
-            <p v-if="msg.content">{{ msg.content }}</p>
+            <div v-if="msg.error" class="flex items-start gap-2">
+              <AlertCircle class="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <p class="whitespace-pre-line">{{ msg.content }}</p>
+            </div>
+            <p v-else-if="msg.content">{{ msg.content }}</p>
             <!-- Indicador "escribiendo..." mientras llega la respuesta -->
             <div v-else-if="msg.sender === 'ASSISTANT'" class="flex items-center gap-2 text-slate-400">
               <span>Remi está escribiendo</span>
@@ -511,7 +531,7 @@ onBeforeUnmount(() => {
             <template v-if="msg.responseTimeMs"> · ⚡ {{ msg.responseTimeMs }} ms</template>
           </span>
           <!-- Valoración de la respuesta (alimenta Estadísticas) -->
-          <div v-if="msg.sender === 'ASSISTANT' && msg.content" class="flex items-center gap-1 mt-1 px-1">
+          <div v-if="msg.sender === 'ASSISTANT' && msg.content && !msg.error" class="flex items-center gap-1 mt-1 px-1">
             <button
               @click="statsStore.setFeedback(msg.id, 1)"
               title="Respuesta útil"
@@ -748,7 +768,7 @@ onBeforeUnmount(() => {
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
               Remi · Asistente Logístico
             </span>
-            <span class="text-[10px] text-slate-500">En línea</span>
+            <span class="text-[10px]" :class="backendStatusColor">{{ backendStatusLabel }}</span>
           </div>
           <p class="text-[11px] text-slate-400 leading-snug">
             Puedes escribir tu consulta o pulsar el micrófono <span class="text-emerald-400 font-semibold">🎙️</span> para hablar en cualquier momento.
