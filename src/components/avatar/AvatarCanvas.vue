@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
                 ? 'Escuchando'
                 : chatStore.avatarState === 'thinking'
                 ? 'Cotizando'
-                : 'En línea'
+                : 'Listo'
             }}
           </span>
         </div>

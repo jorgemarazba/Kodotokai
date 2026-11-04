@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 
 const STORAGE_KEY = 'remi915-stats'
 
-export type QueryOrigin = 'backend' | 'local'
+export type QueryOrigin = 'backend' | 'error'
 export type QueryMode = 'text' | 'voice'
 export type ContactChannel = 'whatsapp' | 'phone' | 'email'
 
@@ -62,7 +62,11 @@ function loadPersisted(): PersistedStats {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<PersistedStats>
       return {
-        queries: parsed.queries ?? [],
+        // Legacy entries used `local` for the removed offline fallback.
+        queries: (parsed.queries ?? []).map((query) => ({
+          ...query,
+          origin: query.origin === 'backend' ? 'backend' : 'error',
+        })),
         feedback: parsed.feedback ?? {},
         ratings: parsed.ratings ?? [],
         contacts: parsed.contacts ?? [],
@@ -163,7 +167,7 @@ export const useStatsStore = defineStore('stats', () => {
 
     // Enviar al backend si está disponible (endpoint /api/v1/feedback o /v1/feedback)
     try {
-      const rawUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace(/\\/g, '/')
+      const rawUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\\/g, '/')
       const endpoint = rawUrl.endsWith('/') ? `${rawUrl}feedback` : `${rawUrl}/feedback`
       await fetch(endpoint, {
         method: 'POST',
@@ -203,6 +207,8 @@ export const useStatsStore = defineStore('stats', () => {
       ? Math.round((queries.value.filter((q) => q.origin === 'backend').length / totalQueries.value) * 100)
       : 0
   )
+
+  const errorPct = computed(() => (totalQueries.value ? 100 - backendPct.value : 0))
 
   const voicePct = computed(() =>
     totalQueries.value
@@ -271,6 +277,7 @@ export const useStatsStore = defineStore('stats', () => {
     totalQueries,
     avgResponseMs,
     backendPct,
+    errorPct,
     voicePct,
     topTopics,
     topLaws,

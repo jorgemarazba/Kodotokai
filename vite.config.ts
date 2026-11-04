@@ -23,16 +23,40 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if ('writeHead' in res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ detail: 'Backend no disponible en http://localhost:8000' }))
+            }
+          })
+        },
       },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if ('writeHead' in res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ detail: 'Backend no disponible en http://localhost:8000' }))
+            }
+          })
+        },
       },
       '/v1': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if ('writeHead' in res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ detail: 'Backend no disponible en http://localhost:8000' }))
+            }
+          })
+        },
       },
     },
   },
