@@ -17,7 +17,7 @@ Today `src/stores/chat.ts` answers with `src/services/translogixAssistant.ts` wh
 
 ## Constraints
 
-- Backend is mandatory at `http://localhost:8000`; Vite proxies `/health`, `/api`, `/v1`.
+- Backend is mandatory at `http://127.0.0.1:8000` (literal IPv4: on Windows `localhost` resolves only to `::1`, while uvicorn listens on IPv4); Vite proxies `/health`, `/api`, `/v1` through one shared `backendProxy()` factory that keeps answering `502` when the backend is down.
 - Keep Web Speech API as the only voice fallback; it is not a chat-response fallback.
 - Preserve avatar/lip-sync behavior and brand invariants.
 - No new dependencies.
@@ -70,6 +70,7 @@ Today `src/stores/chat.ts` answers with `src/services/translogixAssistant.ts` wh
 - `POST /api/v1/ask` through the Vite proxy — `200` in ~86 s with `answer` and `sources`.
 - Offline proxy simulation (target `127.0.0.1:8999`, no listener) — `/health` and `/api/v1/ask` returned `502` with `{"detail":"Backend no disponible..."}`; no fake `200`.
 - `GET /api/v1/pqrsd/PQRSD-2024-000001` against the live backend — `503` with `Relational database is not configured: set DATABASE_URL...`; documented as an environment gap.
+- Proxy target corrected to the literal `http://127.0.0.1:8000` (2026-11-04) — `npm run type-check` PASS; `npm run build` PASS (`vite v8.3.5`, 1767 modules, 1.30 s); dev server on `http://localhost:5173` proxied `GET /health` to `200` with the live payload and `GET /api/v1/pqrsd/PQRSD-2024-000001` to FastAPI's own `404 {"detail":"PQRSD 'PQRSD-2024-000001' not found"}`, proving traffic crosses the proxy instead of dying on `::1`.
 - TDD exception: the frontend has no test runner (`package.json` has no `test` script and no Vitest dependency). Verification uses `vue-tsc`, `vite build`, and live/simulated HTTP checks.
 
 ## Independent verification
@@ -92,3 +93,4 @@ A second targeted verification (`68837c2..HEAD`) returned PASS and noted that PQ
 - `68837c2` — docs: rewrite README and AGENTS for backend-only mode.
 - `366647a` — fix: harden backend error handling.
 - `0d119d9` — fix: validate PQRSD response field types.
+- `7af7323` — fix: apuntar el proxy de Vite a la dirección IPv4 del backend.

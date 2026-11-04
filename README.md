@@ -217,6 +217,8 @@ El indicador del panel derecho muestra el estado real de la API: **Backend en l�
 
 El proxy de Vite dejó de devolver `200` falsos. Si el backend no está disponible, Vite responde `502` con `{ "detail": "Backend no disponible..." }`.
 
+El destino del proxy es `http://127.0.0.1:8000`, no `localhost`: en Windows `localhost` resuelve únicamente a `::1` y uvicorn escucha en IPv4, de modo que la dirección literal es la que conecta.
+
 ---
 
 ## 9. Contrato de API
@@ -309,6 +311,7 @@ El modelo de 1.5B prioriza velocidad en CPU; para respuestas de mayor calidad, c
 | Síntoma | Causa probable | Acción |
 |---|---|---|
 | "No se pudo conectar con el backend" | FastAPI no está corriendo o el puerto no es `8000`. | `python scripts/dev.py api` y `curl localhost:8000/health`. |
+| `502` con el backend vivo y `/health` en `200` | El proxy apuntaba a `localhost` y en Windows resuelve solo a `::1`, mientras uvicorn escucha en IPv4. | Mantener `http://127.0.0.1:8000` en `server.proxy` de `vite.config.ts`. |
 | `503` en el chat con `Ollama unavailable` | Ollama no está corriendo o no tiene el modelo. | `ollama serve` y `python scripts/dev.py models`. |
 | `503` en PQRSD con `Relational database is not configured` | Falta `DATABASE_URL` en el `.env` del backend. | `docker compose up -d postgres`, agregar `DATABASE_URL` y ejecutar `python scripts/dev.py db-init --seed`. |
 | Respuestas de rechazo ("No tengo esa información...") | Índice vacío o pregunta fuera del corpus. | `python scripts/dev.py ingest` y verificar `kb_chunks`. |

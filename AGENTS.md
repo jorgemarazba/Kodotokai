@@ -206,6 +206,8 @@ npm run type-check
 npm run build
 ```
 
+El proxy de desarrollo apunta a `http://127.0.0.1:8000`, no a `localhost`: en Windows `localhost` resuelve solo a `::1` y uvicorn escucha en IPv4. Si se cambia el destino, conservar la dirección literal.
+
 Verificación funcional:
 
 ```bash
