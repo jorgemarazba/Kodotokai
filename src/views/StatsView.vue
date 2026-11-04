@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from 'vue'
 import { BarChart3, MessageSquare, Timer, ThumbsUp, Star, Mic, Server, Phone, Trash2, Briefcase } from 'lucide-vue-next'
 import { useStatsStore } from '@/stores/stats'
@@ -44,13 +44,13 @@ function confirmReset() {
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto p-6 bg-slate-950">
+  <div class="h-full overflow-y-auto p-3.5 sm:p-6 bg-slate-950">
     <div class="max-w-5xl mx-auto space-y-6">
       <!-- Encabezado -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <div>
-          <div class="flex items-center gap-2 text-blue-400 text-xs font-semibold uppercase">
-            <BarChart3 class="w-4 h-4" />
+          <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase">
+            <img src="/icons/nav-estadisticas.png" alt="Estadísticas" class="w-6 h-6 object-contain inline shrink-0" />
             <span>Panel de métricas</span>
           </div>
           <h2 class="text-xl font-bold text-white mt-1">Estadísticas</h2>
@@ -94,7 +94,7 @@ function confirmReset() {
           <p class="text-[11px] text-slate-500">👍 {{ stats.feedbackUp }} · 👎 {{ stats.feedbackDown }}</p>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="flex items-center gap-2 text-xs text-slate-400"><Phone class="w-3.5 h-3.5 text-emerald-400" />Contactos a abogados</div>
+          <div class="flex items-center gap-2 text-xs text-slate-400"><Phone class="w-3.5 h-3.5 text-emerald-400" />Órdenes y cotizaciones</div>
           <p class="text-2xl font-bold text-white mt-1">{{ stats.totalContacts }}</p>
         </div>
       </div>
@@ -148,8 +148,8 @@ function confirmReset() {
 
         <!-- Leyes citadas -->
         <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-sm font-semibold text-white mb-4">Leyes más citadas por el asistente</h3>
-          <p v-if="!stats.topLaws.length" class="text-xs text-slate-500">Aún no se han citado leyes.</p>
+          <h3 class="text-sm font-semibold text-white mb-4">Normas y fuentes citadas por Remi</h3>
+          <p v-if="!stats.topLaws.length" class="text-xs text-slate-500">Aún no se han citado fuentes técnicas.</p>
           <div v-for="t in stats.topLaws" :key="t.label" class="mb-2.5">
             <div class="flex justify-between text-xs text-slate-300 mb-1"><span class="truncate pr-2">{{ t.label }}</span><span>{{ t.count }}</span></div>
             <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-blue-500" :style="{ width: barPct(t.count, maxLaw) + '%' }"></div></div>
@@ -186,7 +186,7 @@ function confirmReset() {
 
         <!-- Contactos por canal -->
         <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-sm font-semibold text-white mb-4">Contactos a abogados por canal</h3>
+          <h3 class="text-sm font-semibold text-white mb-4">Órdenes y cotizaciones por canal</h3>
           <div v-for="c in stats.contactsByChannel" :key="c.label" class="mb-2.5">
             <div class="flex justify-between text-xs text-slate-300 mb-1"><span>{{ c.label }}</span><span>{{ c.count }}</span></div>
             <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-amber-500" :style="{ width: c.count ? barPct(c.count, maxContact) + '%' : '0%' }"></div></div>
@@ -197,14 +197,14 @@ function confirmReset() {
         <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 lg:col-span-2">
           <h3 class="text-sm font-semibold text-white mb-1 flex items-center gap-2">
             <Briefcase class="w-4 h-4 text-blue-400" />
-            Directorio de abogados · {{ lawyersStore.lawyers.length }} publicados
+            Flota & Servicios de Transporte · {{ lawyersStore.lawyers.length }} categorías activas
           </h3>
           <p v-if="avgPrice" class="text-xs text-slate-400 mb-4">
-            Tarifa promedio: ${{ avgPrice.from.toLocaleString('es-CO') }} – ${{ avgPrice.to.toLocaleString('es-CO') }} COP
+            Flete estimado: ${{ avgPrice.from.toLocaleString('es-CO') }} – ${{ avgPrice.to.toLocaleString('es-CO') }} COP
           </p>
           <div v-for="s in lawyersBySpecialty" :key="s.label" class="mb-2.5">
             <div class="flex justify-between text-xs text-slate-300 mb-1"><span>{{ s.label }}</span><span>{{ s.count }}</span></div>
-            <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-purple-500" :style="{ width: barPct(s.count, maxSpecialty) + '%' }"></div></div>
+            <div class="h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-emerald-500" :style="{ width: barPct(s.count, maxSpecialty) + '%' }"></div></div>
           </div>
         </section>
       </div>

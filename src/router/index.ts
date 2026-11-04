@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import ChatView from '@/views/ChatView.vue'
 import LawyersView from '@/views/LawyersView.vue'
 import StatsView from '@/views/StatsView.vue'
@@ -12,8 +12,9 @@ const router = createRouter({
       component: ChatView,
     },
     {
-      path: '/lawyers',
-      name: 'lawyers',
+      path: '/servicios',
+      alias: '/lawyers',
+      name: 'servicios',
       component: LawyersView,
     },
     {

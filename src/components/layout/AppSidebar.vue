@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  Scale,
-  Home,
+  Truck,
+  PackageCheck,
+  X,
   Briefcase,
-  BarChart3,
   UserPlus,
   Settings,
   ChevronDown,
@@ -14,11 +14,13 @@ import {
   CheckCircle2,
   Edit3,
   Send,
+  FileText,
 } from 'lucide-vue-next'
 import { useSessionStore } from '@/stores/session'
 import { useLawyersStore } from '@/stores/lawyers'
 import { useChatStore } from '@/stores/chat'
 import { useStatsStore } from '@/stores/stats'
+import { usePqrsdStore } from '@/stores/pqrsd'
 
 const router = useRouter()
 const route = useRoute()
@@ -26,11 +28,36 @@ const sessionStore = useSessionStore()
 const lawyersStore = useLawyersStore()
 const chatStore = useChatStore()
 const statsStore = useStatsStore()
+const pqrsdStore = usePqrsdStore()
 
 const showSettings = ref(false)
 
 function handleGoHome() {
+  sessionStore.closeMobileSidebar()
   router.push('/')
+}
+
+function handleNewInstance() {
+  sessionStore.closeMobileSidebar()
+  chatStore.startNewInstance()
+  if (route.path !== '/') {
+    router.push('/')
+  }
+}
+
+function handleNavigate(path: string) {
+  sessionStore.closeMobileSidebar()
+  router.push(path)
+}
+
+function handleOpenRegister() {
+  sessionStore.closeMobileSidebar()
+  sessionStore.openEntryTab('service-register')
+}
+
+function handleOpenPqrs(tab: 'radicar' | 'consultar' | 'lista' = 'radicar') {
+  sessionStore.closeMobileSidebar()
+  pqrsdStore.openPqrsModal(tab)
 }
 
 function handleVoiceChange(event: Event) {
@@ -63,6 +90,13 @@ const ratingLabels: Record<number, string> = {
 
 const activeScore = computed(() => hoverStars.value || selectedStars.value)
 
+watch(targetConvId, () => {
+  hoverStars.value = 0
+  isEditing.value = false
+  showCommentInput.value = false
+  comment.value = currentRating.value?.comment || ''
+})
+
 async function handleRate(stars: number) {
   isSaving.value = true
   await statsStore.submitRating({
@@ -94,72 +128,135 @@ function handleEdit() {
 </script>
 
 <template>
-  <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col h-full select-none shrink-0">
-    <!-- Logo Superior -->
-    <div class="p-4 border-b border-slate-800 flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-        <Scale class="w-5 h-5 text-white" />
+  <!-- Backdrop oscuro para móvil cuando el sidebar está abierto -->
+  <div
+    v-if="sessionStore.isMobileSidebarOpen"
+    @click="sessionStore.closeMobileSidebar()"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+  ></div>
+
+  <!-- Sidebar: en desktop es fija (lg:static / lg:translate-x-0); en móvil es drawer flotante (fixed z-50) -->
+  <aside
+    class="fixed lg:static top-0 bottom-0 left-0 z-50 w-72 bg-gradient-to-b from-[#0b241e] via-[#081c17] to-[#04100d] border-r border-[#153e34]/70 flex flex-col h-full select-none shrink-0 transition-transform duration-300 ease-in-out"
+    :class="sessionStore.isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'"
+  >
+    <!-- Logo Superior con botón para cerrar en móvil -->
+    <div class="p-4 border-b border-[#153e34]/60 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 flex items-center justify-center shrink-0">
+          <img src="/translogix-cab-trans.png" alt="TransLogix Express" class="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(34,197,94,0.3)]" />
+        </div>
+        <div>
+          <h1 class="font-bold text-base text-white tracking-tight">TransLogix Colombia</h1>
+          <p class="text-xs text-emerald-400 font-medium">Logística & Transporte</p>
+        </div>
       </div>
-      <div>
-        <h1 class="font-bold text-base text-white tracking-tight">Remi-915 Colombia</h1>
-        <p class="text-xs text-slate-400">IA Local</p>
-      </div>
+      <button
+        @click="sessionStore.closeMobileSidebar()"
+        class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#0f2e26] transition cursor-pointer"
+        aria-label="Cerrar menú"
+      >
+        <X class="w-5 h-5" />
+      </button>
     </div>
 
-    <!-- Navegación Principal (Orden exacto: Inicio -> Lawyers -> Estadísticas) -->
-    <div class="p-3 space-y-1.5">
-      <!-- 1. Inicio (cambiado de Nuevo chat) -->
+    <!-- Navegación Principal con los nuevos iconos personalizados de TransLogix -->
+    <div class="p-3 space-y-2">
+      <!-- 1. Inicio -->
       <button
         @click="handleGoHome"
-        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
+        class="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/'
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-            : 'text-slate-300 hover:bg-slate-800'
+            ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
+            : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <Home class="w-4 h-4" />
+        <img
+          src="/icons/nav-inicio.png"
+          alt="Inicio"
+          class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+        />
         <span>Inicio</span>
       </button>
 
-      <!-- 2. Lawyers -->
+      <!-- 2. Nueva instancia -->
       <button
-        @click="router.push('/lawyers')"
-        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
+        @click="handleNewInstance"
+        class="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white group"
+        title="Reinicia la sesión con un usuario limpio para volver a calificar"
+      >
+        <img
+          src="/icons/nav-nueva-instancia.png"
+          alt="Nueva instancia"
+          class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+        />
+        <span>Nueva instancia</span>
+      </button>
+
+      <!-- 3. Transporte y Servicio -->
+      <button
+        @click="handleNavigate('/servicios')"
+        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
-          route.path === '/lawyers'
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-            : 'text-slate-300 hover:bg-slate-800'
+          route.path === '/servicios' || route.path === '/lawyers'
+            ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
+            : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <span class="flex items-center gap-3">
-          <Briefcase class="w-4 h-4" />
-          <span>Lawyers</span>
+        <span class="flex items-center gap-3.5 min-w-0">
+          <img
+            src="/icons/nav-transporte.png"
+            alt="Transporte y Servicio"
+            class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+          />
+          <span class="truncate">Servicios & Transporte</span>
         </span>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-blue-300 border border-slate-700">
-          {{ lawyersStore.lawyers.length }}
+        <span class="text-xs px-2 py-0.5 rounded-full bg-[#051813] text-emerald-300 border border-[#153e34]">
+          5
         </span>
       </button>
 
-      <!-- 3. Estadísticas -->
+      <!-- 4. Estadísticas -->
       <button
-        @click="router.push('/stats')"
-        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer"
+        @click="handleNavigate('/stats')"
+        class="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group"
         :class="
           route.path === '/stats'
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-            : 'text-slate-300 hover:bg-slate-800'
+            ? 'bg-emerald-600/80 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
+            : 'text-slate-300 hover:bg-[#0f2e26]/80 hover:text-white'
         "
       >
-        <BarChart3 class="w-4 h-4" />
+        <img
+          src="/icons/nav-estadisticas.png"
+          alt="Estadísticas"
+          class="w-7 h-7 object-contain shrink-0 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform"
+        />
         <span>Estadísticas</span>
+      </button>
+
+      <!-- 5. Ventanilla PQRSD (Nuevos Endpoints Canónicos) -->
+      <button
+        @click="handleOpenPqrs('radicar')"
+        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition cursor-pointer group bg-gradient-to-r from-blue-900/40 to-slate-900/60 hover:from-blue-800/50 hover:to-slate-800/70 border border-blue-500/30 text-blue-200 hover:text-white shadow-sm"
+        title="Radicar y consultar peticiones, quejas, reclamos y sugerencias oficiales"
+      >
+        <span class="flex items-center gap-3.5 min-w-0">
+          <div class="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+            <FileText class="w-4 h-4" />
+          </div>
+          <span class="truncate">Ventanilla PQRSD</span>
+        </span>
+        <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          Oficial
+        </span>
       </button>
     </div>
 
     <!-- Sección de Calificación de Satisfacción (1 a 5 Estrellas) en el Sidebar -->
     <!-- (El Historial fue removido según solicitud) -->
     <div class="flex-1 min-h-0 overflow-y-auto px-3 py-2 flex flex-col justify-end">
-      <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 shadow-sm space-y-3">
+      <div class="bg-[#04120e]/85 border border-[#153e34]/80 rounded-2xl p-3.5 shadow-sm space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-semibold uppercase tracking-wider text-amber-300/90 flex items-center gap-1.5">
             <Star class="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -190,7 +287,7 @@ function handleEdit() {
             {{ ratingLabels[selectedStars] }}
           </p>
 
-          <p v-if="currentRating?.comment" class="text-[11px] text-slate-300 bg-slate-900 border border-slate-800 rounded-lg p-2 italic truncate">
+          <p v-if="currentRating?.comment" class="text-[11px] text-slate-300 bg-[#061813] border border-[#153e34] rounded-lg p-2 italic truncate">
             "{{ currentRating.comment }}"
           </p>
 
@@ -206,7 +303,7 @@ function handleEdit() {
         <!-- Estado: Por calificar o Editando -->
         <div v-else class="space-y-2.5">
           <p class="text-xs text-slate-300 text-center leading-snug">
-            ¿Cómo evalúas tu experiencia con Remi-915?
+            ¿Cómo evalúas tu experiencia con Remi en TransLogix Colombia?
           </p>
 
           <!-- 5 Estrellas interactivas -->
@@ -245,12 +342,12 @@ function handleEdit() {
             </button>
           </div>
 
-          <div v-else class="space-y-1.5 pt-1 border-t border-slate-800">
+          <div v-else class="space-y-1.5 pt-1 border-t border-[#153e34]/70">
             <textarea
               v-model="comment"
               rows="2"
               placeholder="Escribe tu sugerencia..."
-              class="w-full text-xs text-slate-100 bg-slate-900 border border-slate-800 rounded-lg p-2 focus:border-amber-400/60 focus:outline-none resize-none"
+              class="w-full text-xs text-slate-100 bg-[#061813] border border-[#153e34] rounded-lg p-2 focus:border-amber-400/60 focus:outline-none resize-none"
             ></textarea>
             <div class="flex items-center justify-end gap-1.5">
               <button
@@ -274,17 +371,17 @@ function handleEdit() {
     </div>
 
     <!-- Botón Registro de Servicio y Ajustes de Voz -->
-    <div class="p-3 border-t border-slate-800 space-y-2.5 bg-slate-950/50">
+    <div class="p-3 border-t border-[#153e34]/70 space-y-2.5 bg-[#030e0b]/90">
       <button
-        @click="sessionStore.openEntryTab('service-register')"
+        @click="handleOpenRegister"
         class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition cursor-pointer"
       >
-        <UserPlus class="w-3.5 h-3.5" />
-        <span>Registro de servicio (Abogados)</span>
+        <PackageCheck class="w-3.5 h-3.5" />
+        <span>Cotizar Envío / Servicio</span>
       </button>
 
       <div v-if="showSettings" class="space-y-2 text-[11px] text-slate-300">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+        <div class="flex items-center gap-1.5 bg-[#061813] border border-[#153e34] rounded-lg px-2.5 py-1.5">
           <Volume2 class="w-3.5 h-3.5 text-blue-400 shrink-0" />
           <span class="text-slate-400">Voz:</span>
           <select
@@ -296,14 +393,14 @@ function handleEdit() {
               v-for="v in chatStore.availableVoices"
               :key="v.id"
               :value="v.id"
-              class="bg-slate-900 text-slate-200"
+              class="bg-[#061813] text-slate-200"
             >
               {{ v.label }}
             </option>
           </select>
         </div>
 
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+        <div class="flex items-center gap-1.5 bg-[#061813] border border-[#153e34] rounded-lg px-2.5 py-1.5">
           <span class="text-slate-400">Timbre:</span>
           <select
             v-model.number="chatStore.voicePitch"
@@ -321,7 +418,7 @@ function handleEdit() {
       <!-- Configuración: Voz y Timbre del avatar -->
       <button
         @click="showSettings = !showSettings"
-        class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 border border-slate-800 transition cursor-pointer"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-[#0f2e26]/80 border border-[#153e34] transition cursor-pointer"
       >
         <span class="flex items-center gap-2">
           <Settings class="w-3.5 h-3.5" />

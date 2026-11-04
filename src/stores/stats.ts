@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 
 const STORAGE_KEY = 'remi915-stats'
