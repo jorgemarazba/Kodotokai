@@ -45,3 +45,6 @@ __screenshots__/
 
 # Temporary scratch files
 scratch/
+
+# Local AI tooling artifacts (absolute machine paths, per-machine cache)
+.atl/
