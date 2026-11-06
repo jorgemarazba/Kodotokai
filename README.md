@@ -228,10 +228,11 @@ El destino del proxy es `http://127.0.0.1:8000`, no `localhost`: en Windows `loc
 | Método | Ruta | Estado en el backend |
 |---|---|---|
 | `GET` | `/health` | Implementado. Devuelve `{status, model, embedding_model, kb_chunks}`. |
-| `POST` | `/api/v1/ask` | Implementado. Devuelve `{answer, sources[]}`. |
+| `POST` | `/api/v1/ask/stream` | Implementado. Streaming progresivo de tokens + cabecera `X-Sources-Base64`. |
+| `POST` | `/api/v1/ask` | Implementado (respaldo no-stream). Devuelve `{answer, sources[]}`. |
 | `GET/POST/PATCH` | `/api/v1/pqrsd...` | Implementado, pero requiere `DATABASE_URL`. Sin base devuelve `503`. |
 | `POST` | `/api/v1/transcribe` | **No implementado**. La transcripción de voz usa el navegador. |
-| `POST` | `/v1/tts` | **No implementado**. La voz usa Web Speech API. |
+| `POST` | `/v1/tts` | **No implementado**. Reemplazado por integración de ElevenLabs Flash 2.5 + respaldo Web Speech API. |
 | `POST` | `/api/v1/feedback` | **No implementado**. La calificación queda solo en `localStorage`. |
 
 ### Endpoints disponibles en el backend
@@ -248,7 +249,7 @@ El destino del proxy es `http://127.0.0.1:8000`, no `localhost`: en Windows `loc
 | `PATCH` | `/api/v1/pqrsd/{radicado}` |
 | `POST` | `/api/v1/pqrsd/{radicado}/anexos` |
 
-El frontend usa `/api/v1/ask` (no streaming). Los cinco endpoints de PQRSD requieren `DATABASE_URL` y PostgreSQL 13+ con `pg_trgm`; sin esa configuración responden `503`.
+El frontend consume prioritariamente `/api/v1/ask/stream` con visualización token a token y síntesis de voz progresiva por oraciones (con fallback a `/api/v1/ask`). Los cinco endpoints de PQRSD requieren `DATABASE_URL` y PostgreSQL 13+ con `pg_trgm`; sin esa configuración responden `503`.
 
 ---
 
@@ -296,13 +297,12 @@ El modelo de 1.5B prioriza velocidad en CPU; para respuestas de mayor calidad, c
 
 ## 12. Limitaciones conocidas
 
-- **Endpoints faltantes:** TTS neuronal, transcripción y feedback no existen en el backend actual. El frontend los llama y muestra el error o usa el fallback del navegador según el caso.
+- **Endpoints faltantes:** transcripción y feedback no existen en el backend actual. La voz utiliza ElevenLabs Flash 2.5 integrado en el cliente con caché IndexedDB y fallback automático a Web Speech API.
 - **PQRSD requiere base de datos:** los cinco endpoints de `/api/v1/pqrsd` existen, pero sin `DATABASE_URL` responden `503`. Para habilitarlos, levanta PostgreSQL (`docker compose up -d postgres`), agrega `DATABASE_URL` al `.env` del backend y ejecuta `python scripts/dev.py db-init --seed`.
 - **Sin CORS en el backend:** las llamadas deben pasar por el proxy de Vite o usar rutas relativas. Una URL absoluta a `:8000` puede ser bloqueada por el navegador.
 - **Datos estáticos:** `src/stores/lawyers.ts` contiene servicios de ejemplo; el backend no expone `/lawyers`. La vista de Servicios no depende de la API.
 - **Sin tests automatizados:** no hay Vitest ni suite equivalente. La validación es `vue-tsc`, build y pruebas manuales.
-- **Latencia:** en CPU-only una respuesta RAG puede tardar decenas de segundos. El frontend usa la variante no streaming de `/api/v1/ask`.
-- **El backend no devuelve `neural_tts`:** el camino de TTS neuronal nunca se activa; la voz siempre usa Web Speech API.
+- **Latencia reducida con streaming:** en CPU-only la generación completa puede tardar decenas de segundos; el frontend procesa el stream en vivo (`/api/v1/ask/stream`) para que el usuario lea y escuche las primeras oraciones casi de inmediato sin esperar al final.
 
 ---
 

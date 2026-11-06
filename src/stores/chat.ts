@@ -2,6 +2,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useSessionStore } from './session'
 import { useStatsStore } from './stats'
+import {
+  synthesizeSpeech,
+  StreamingSentenceAudioQueue,
+} from '@/services/elevenlabs'
 
 export interface LegalCitation {
   lawName: string
@@ -150,16 +154,55 @@ export interface ConversationItem {
 export interface VoiceOption {
   id: string
   label: string
-  neuralVoice: string
-  neuralRate: string
-  neuralPitch: string
+  neuralVoice?: string
+  neuralRate?: string
+  neuralPitch?: string
   pitch: number
   rate: number
   voiceName?: string
+  elevenVoiceId?: string
+  elevenModelId?: string
+  isElevenLabs?: boolean
 }
 
-// Voces Neuronales Masculinas reales (edge-tts) + respaldo Web Speech
+// Voces Neuronales: ElevenLabs Flash 2.5 prioritario + edge-tts + respaldo Web Speech
 const DEFAULT_VOICE_PROFILES: VoiceOption[] = [
+  {
+    id: 'eleven-remi-roger',
+    label: '🎙️ Roger ElevenLabs · Maduro y Resonante (Flash IA)',
+    pitch: 0.95,
+    rate: 1.0,
+    elevenVoiceId: 'CwhRBWXzGAHq8TQ4Fs17',
+    elevenModelId: 'eleven_flash_v2_5',
+    isElevenLabs: true,
+  },
+  {
+    id: 'eleven-remi-eric',
+    label: '🎙️ Eric ElevenLabs · Asesor Logístico (Flash IA)',
+    pitch: 0.95,
+    rate: 1.0,
+    elevenVoiceId: 'cjVigY5qzO86Huf0OWal',
+    elevenModelId: 'eleven_flash_v2_5',
+    isElevenLabs: true,
+  },
+  {
+    id: 'eleven-brian',
+    label: '🎙️ Brian ElevenLabs · Cálido y Resonante (Flash IA)',
+    pitch: 0.9,
+    rate: 1.0,
+    elevenVoiceId: 'nPczCjzI2devNBz1zQrb',
+    elevenModelId: 'eleven_flash_v2_5',
+    isElevenLabs: true,
+  },
+  {
+    id: 'eleven-adam',
+    label: '🎙️ Adam ElevenLabs · Firme y Dinámico (Flash IA)',
+    pitch: 0.95,
+    rate: 1.0,
+    elevenVoiceId: 'pNInz6obpgDQGcFmaJgB',
+    elevenModelId: 'eleven_flash_v2_5',
+    isElevenLabs: true,
+  },
   {
     id: 'neural-gonzalo-co',
     label: '🇨🇴 Gonzalo Neural · Colombiano Joven (IA)',
@@ -215,12 +258,13 @@ export const useChatStore = defineStore('chat', () => {
   const liveSubtitle = ref<string>(WELCOME_TEXT)
 
   const availableVoices = ref<VoiceOption[]>([...DEFAULT_VOICE_PROFILES])
-  const selectedVoiceId = ref<string>('neural-gonzalo-co')
-  const voicePitch = ref<number>(0.92)
-  const voiceRate = ref<number>(1.04)
+  const selectedVoiceId = ref<string>('eleven-remi-roger')
+  const voicePitch = ref<number>(0.95)
+  const voiceRate = ref<number>(1.0)
 
   let visemeInterval: ReturnType<typeof setInterval> | null = null
   let currentAudio: HTMLAudioElement | null = null
+  let activeStreamingQueue: StreamingSentenceAudioQueue | null = null
   let speechStarted = false
   let welcomeDone = false
   const neuralTtsAvailable = ref<boolean | null>(null)
@@ -483,7 +527,38 @@ export const useChatStore = defineStore('chat', () => {
     const selectedOption =
       availableVoices.value.find((o) => o.id === selectedVoiceId.value) || DEFAULT_VOICE_PROFILES[0]!
 
-    // 1. Intentar primero la Voz Neuronal Masculina (/v1/tts con edge-tts) si está disponible
+    // 0. Intentar primero ElevenLabs si la opción seleccionada es ElevenLabs
+    if (selectedOption.isElevenLabs) {
+      try {
+        const blob = await synthesizeSpeech(speechClean, {
+          voiceId: selectedOption.elevenVoiceId,
+          modelId: selectedOption.elevenModelId,
+        })
+        const url = URL.createObjectURL(blob)
+        const audio = new Audio(url)
+        currentAudio = audio
+
+        audio.onplay = () => {
+          speechStarted = true
+          startLipSyncAnimation(speechClean)
+        }
+        audio.onended = () => {
+          URL.revokeObjectURL(url)
+          stopSpeaking()
+        }
+        audio.onerror = () => {
+          URL.revokeObjectURL(url)
+          stopSpeaking()
+        }
+
+        await audio.play()
+        return
+      } catch (err) {
+        console.warn('ElevenLabs TTS failed, falling back:', err)
+      }
+    }
+
+    // 1. Intentar la Voz Neuronal (/v1/tts con edge-tts) si está disponible
     if (selectedOption.neuralVoice && (await checkNeuralTtsStatus())) {
       try {
         const res = await fetch('/v1/tts', {
@@ -492,8 +567,8 @@ export const useChatStore = defineStore('chat', () => {
           body: JSON.stringify({
             text: speechClean,
             voice: selectedOption.neuralVoice,
-            rate: selectedOption.neuralRate,
-            pitch: pitchNumberToHz(voicePitch.value, selectedOption.neuralPitch),
+            rate: selectedOption.neuralRate || '+0%',
+            pitch: pitchNumberToHz(voicePitch.value, selectedOption.neuralPitch || '+0Hz'),
           }),
         })
 
@@ -611,6 +686,10 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function stopSpeaking() {
+    if (activeStreamingQueue) {
+      activeStreamingQueue.stop()
+      activeStreamingQueue = null
+    }
     if (fallbackStopTimer) {
       clearTimeout(fallbackStopTimer)
       fallbackStopTimer = null
@@ -796,50 +875,175 @@ export const useChatStore = defineStore('chat', () => {
       }
     }
 
-    // 1. Consumo obligatorio del backend FastAPI (/api/v1/ask)
+    // 1. Consumo obligatorio del backend FastAPI (/api/v1/ask/stream con fallback a /api/v1/ask)
     try {
-      const response = await fetch('/api/v1/ask', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ question }),
-      })
+      const selectedOption =
+        availableVoices.value.find((o) => o.id === selectedVoiceId.value) || DEFAULT_VOICE_PROFILES[0]!
 
-      backendStatus.value = response.status === 502 || response.status === 504 ? 'offline' : 'online'
+      let streamSucceeded = false
 
-      if (!response.ok) {
-        const detail = await readErrorDetail(response)
-        finishWithError(formatApiError(response.status, detail), response.status)
-        return
+      // Intento prioritario de streaming progresivo
+      try {
+        const streamRes = await fetch('/api/v1/ask/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ question }),
+        })
+
+        backendStatus.value = streamRes.status === 502 || streamRes.status === 504 ? 'offline' : 'online'
+
+        if (streamRes.ok && streamRes.body) {
+          // Extraer fuentes RAG desde el header X-Sources-Base64 si el backend las emitió
+          let streamSources: LegalCitation[] = []
+          const rawHeader = streamRes.headers.get('x-sources-base64') || streamRes.headers.get('x-sources')
+          if (rawHeader) {
+            try {
+              const decoded = atob(rawHeader)
+              streamSources = normalizeRagSources(JSON.parse(decoded))
+            } catch {
+              // ignore decode error
+            }
+          }
+
+          let queue: StreamingSentenceAudioQueue | null = null
+          if (selectedOption.isElevenLabs) {
+            queue = new StreamingSentenceAudioQueue(
+              {
+                onSentenceStart: (sentence) => {
+                  avatarEmotion.value = 'empatia'
+                  liveSubtitle.value = sentence
+                  avatarGesture.value = detectGestureFromText(sentence)
+                  gestureStartedAt.value = performance.now()
+                  startLipSyncAnimation(sentence)
+                },
+                onComplete: () => {
+                  stopSpeaking()
+                },
+                onError: (err) => {
+                  console.warn('Streaming TTS error:', err)
+                },
+              },
+              selectedOption.elevenVoiceId,
+              selectedOption.elevenModelId
+            )
+            activeStreamingQueue = queue
+          }
+
+          const reader = streamRes.body.getReader()
+          const decoder = new TextDecoder('utf-8')
+          let accumulatedAnswer = ''
+
+          avatarState.value = 'thinking'
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const textChunk = decoder.decode(value, { stream: true })
+            if (!textChunk) continue
+
+            accumulatedAnswer += textChunk
+            reactiveBotMsg.content = accumulatedAnswer
+            liveSubtitle.value = accumulatedAnswer
+
+            if (queue) {
+              queue.pushTokens(textChunk)
+            }
+          }
+
+          if (queue) {
+            queue.flush()
+          }
+
+          const finalAnswer = accumulatedAnswer.trim()
+          if (!finalAnswer) {
+            finishWithError(
+              'El backend respondió sin una respuesta válida (`answer` vacío o ausente). Revisa la respuesta de /api/v1/ask/stream.'
+            )
+            return
+          }
+
+          reactiveBotMsg.content = finalAnswer
+          reactiveBotMsg.sources = streamSources
+          reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+
+          statsStore.logQuery({
+            question,
+            responseMs: reactiveBotMsg.responseTimeMs,
+            origin: 'backend',
+            mode,
+            laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+          })
+
+          if (!selectedOption.isElevenLabs) {
+            speakWithLipSync(finalAnswer, 'empatia')
+          }
+
+          streamSucceeded = true
+          return
+        }
+
+        // Si falló por error de red o backend offline
+        if (streamRes.status === 502 || streamRes.status === 504) {
+          const detail = await readErrorDetail(streamRes)
+          finishWithError(formatApiError(streamRes.status, detail), streamRes.status)
+          return
+        }
+
+        if (streamRes.status !== 404 && streamRes.status !== 405) {
+          const detail = await readErrorDetail(streamRes)
+          finishWithError(formatApiError(streamRes.status, detail), streamRes.status)
+          return
+        }
+      } catch {
+        // Fallback al endpoint clásico /api/v1/ask si el streaming falló a nivel transporte
       }
 
-      const data = (await response.json().catch(() => null)) as
-        | { answer?: unknown; sources?: unknown }
-        | null
-      const answer = typeof data?.answer === 'string' ? data.answer.trim() : ''
+      if (!streamSucceeded) {
+        const response = await fetch('/api/v1/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ question }),
+        })
 
-      if (!answer) {
-        finishWithError(
-          'El backend respondió sin una respuesta válida (`answer` vacío o ausente). Revisa la respuesta de /api/v1/ask.'
-        )
-        return
+        backendStatus.value = response.status === 502 || response.status === 504 ? 'offline' : 'online'
+
+        if (!response.ok) {
+          const detail = await readErrorDetail(response)
+          finishWithError(formatApiError(response.status, detail), response.status)
+          return
+        }
+
+        const data = (await response.json().catch(() => null)) as
+          | { answer?: unknown; sources?: unknown }
+          | null
+        const answer = typeof data?.answer === 'string' ? data.answer.trim() : ''
+
+        if (!answer) {
+          finishWithError(
+            'El backend respondió sin una respuesta válida (`answer` vacío o ausente). Revisa la respuesta de /api/v1/ask.'
+          )
+          return
+        }
+
+        reactiveBotMsg.content = answer
+        reactiveBotMsg.sources = normalizeRagSources(data?.sources)
+        reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
+        liveSubtitle.value = answer
+
+        statsStore.logQuery({
+          question,
+          responseMs: reactiveBotMsg.responseTimeMs,
+          origin: 'backend',
+          mode,
+          laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
+        })
+
+        speakWithLipSync(answer, 'empatia')
       }
-
-      reactiveBotMsg.content = answer
-      reactiveBotMsg.sources = normalizeRagSources(data?.sources)
-      reactiveBotMsg.responseTimeMs = Math.round(performance.now() - startMs)
-      liveSubtitle.value = answer
-
-      statsStore.logQuery({
-        question,
-        responseMs: reactiveBotMsg.responseTimeMs,
-        origin: 'backend',
-        mode,
-        laws: (reactiveBotMsg.sources ?? []).map((s) => s.lawName),
-      })
-
-      speakWithLipSync(answer, 'empatia')
     } catch {
       backendStatus.value = 'offline'
       finishWithError(connectionErrorMessage())

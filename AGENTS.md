@@ -43,6 +43,7 @@ Kodotokai/
 │   │   ├── layout/AppSidebar.vue
 │   │   └── pqrsd/PqrsdModal.vue
 │   ├── services/
+│   │   ├── elevenlabs.ts           # Cliente ElevenLabs TTS, sanitización, caché IndexedDB y cola streaming
 │   │   └── pqrsd.ts                # Cliente de /api/v1/pqrsd
 │   ├── stores/
 │   │   ├── chat.ts                 # Conversación, voz, errores de API y estado del backend
@@ -132,9 +133,17 @@ Kodotokai/
 
 ```env
 VITE_API_BASE_URL=/api/v1
+
+# ElevenLabs TTS
+VITE_ELEVENLABS_API_KEY=
+VITE_ELEVENLABS_VOICE_ID=cjVigY5qzO86Huf0OWal
+VITE_ELEVENLABS_MODEL_ID=eleven_flash_v2_5
+VITE_ELEVENLABS_ENABLE_CACHE=true
 ```
 
-- Debe ser relativa para pasar por el proxy de Vite.
+- `VITE_API_BASE_URL` debe ser relativa para pasar por el proxy de Vite.
+- `VITE_ELEVENLABS_API_KEY` habilita la síntesis neuronal en ElevenLabs.
+- `VITE_ELEVENLABS_ENABLE_CACHE` activa el caché persistente en IndexedDB para ahorrar créditos en frases frecuentes y saludos.
 - `VITE_ENABLE_BACKEND` fue eliminada.
 - `VITE_DEFAULT_AVATAR_URL` y `VITE_APP_TITLE` fueron eliminadas por no tener uso real.
 - `.env` está ignorado por Git; `.env.example` es la plantilla versionada.
@@ -156,10 +165,11 @@ Se definen en `../../backend-translogix/.env` y se cargan desde `api/config.py`:
 | Método | Ruta | Estado |
 |---|---|---|
 | `GET` | `/health` | Implementado. |
-| `POST` | `/api/v1/ask` | Implementado. Respuesta `{answer, sources[]}`. |
+| `POST` | `/api/v1/ask/stream` | Implementado. Streaming progresivo de tokens + cabecera `X-Sources-Base64`. |
+| `POST` | `/api/v1/ask` | Implementado (ruta de respaldo no-stream). Respuesta `{answer, sources[]}`. |
 | `GET/POST/PATCH` | `/api/v1/pqrsd...` | Implementado, pero requiere `DATABASE_URL`; sin base devuelve `503`. |
 | `POST` | `/api/v1/transcribe` | **No implementado**. |
-| `POST` | `/v1/tts` | **No implementado**. |
+| `POST` | `/v1/tts` | **No implementado** (reemplazado por integración directa con ElevenLabs + Web Speech). |
 | `POST` | `/api/v1/feedback` | **No implementado**. |
 
 ### Expuesto por el backend
@@ -237,7 +247,7 @@ Prueba manual obligatoria:
 - `src/stores/lawyers.ts` contiene datos estáticos; el backend no expone `/lawyers`.
 - El modelo de chat efectivo puede diferir del default documentado según el `.env` del backend.
 - En CPU-only las respuestas RAG pueden tardar decenas de segundos.
-- El frontend usa `/api/v1/ask` sin streaming.
+- El frontend consume prioritariamente `/api/v1/ask/stream` para streaming en vivo de tokens y síntesis TTS progresiva; conmuta a `/api/v1/ask` si el streaming no está disponible.
 
 ---
 
