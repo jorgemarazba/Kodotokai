@@ -168,8 +168,17 @@ export interface VoiceOption {
 // Voces Neuronales: ElevenLabs Flash 2.5 prioritario + edge-tts + respaldo Web Speech
 const DEFAULT_VOICE_PROFILES: VoiceOption[] = [
   {
+    id: 'eleven-remi-roger',
+    label: '🎙️ Roger ElevenLabs · Maduro y Resonante (Flash IA)',
+    pitch: 0.95,
+    rate: 1.0,
+    elevenVoiceId: 'CwhRBWXzGAHq8TQ4Fs17',
+    elevenModelId: 'eleven_flash_v2_5',
+    isElevenLabs: true,
+  },
+  {
     id: 'eleven-remi-eric',
-    label: '🎙️ Remi ElevenLabs · Asesor Logístico Senior (Flash IA)',
+    label: '🎙️ Eric ElevenLabs · Asesor Logístico (Flash IA)',
     pitch: 0.95,
     rate: 1.0,
     elevenVoiceId: 'cjVigY5qzO86Huf0OWal',
@@ -249,7 +258,7 @@ export const useChatStore = defineStore('chat', () => {
   const liveSubtitle = ref<string>(WELCOME_TEXT)
 
   const availableVoices = ref<VoiceOption[]>([...DEFAULT_VOICE_PROFILES])
-  const selectedVoiceId = ref<string>('eleven-remi-eric')
+  const selectedVoiceId = ref<string>('eleven-remi-roger')
   const voicePitch = ref<number>(0.95)
   const voiceRate = ref<number>(1.0)
 
